@@ -31,3 +31,37 @@ build/
 
 ### VS Code ###
 .vscode/
+
+
+*.class
+
+# Log files
+*.log
+
+out/
+
+.settings/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Maven
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+
+# Application properties with sensitive data
+application-local.properties
+application-prod.properties
+
+# Environment variables
+.env
+
+# Temporary files
+*.swp
+*.swo
+*~
