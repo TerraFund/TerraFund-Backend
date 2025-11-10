@@ -1,5 +1,6 @@
 package com.example.TerraFund.entities;
 
+import com.example.TerraFund.dto.enums.RoleEnum;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -19,4 +20,16 @@ public class User {
 
     @Column(nullable = false)
     private String password;
+
+    @Column(nullable = false)
+    private String firstName;
+
+    @Column(nullable = false)
+    private String lastName;
+
+    @Column(nullable = false)
+    private String phoneNumber;
+
+    @Enumerated(EnumType.STRING)
+    private RoleEnum role;
 }
