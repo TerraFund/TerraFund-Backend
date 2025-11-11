@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 @AllArgsConstructor
 @RestController
 @RequestMapping("/api/auth")
+@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:5173", "http://localhost:4200"}, allowCredentials = "true")
 public class AuthController {
 
     private final AuthService authService;
@@ -27,7 +28,7 @@ public class AuthController {
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<?> refresh(@CookieValue("refreshToken") String refreshToken){
+    public ResponseEntity<?> refresh(@CookieValue(name = "refreshToken", required = false) String refreshToken){
         return authService.refresh(refreshToken);
     }
 

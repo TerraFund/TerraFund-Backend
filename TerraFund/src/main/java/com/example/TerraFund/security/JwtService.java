@@ -21,7 +21,7 @@ public class JwtService {
                 .claim("role", role)
                 .claim("id", id)
                 .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + 300))
+                .expiration(new Date(System.currentTimeMillis() + 1000 * 60 * 15)) // 15 minutes
                 .signWith(Keys.hmacShaKeyFor(secret.getBytes()))
                 .compact()
                 ;
@@ -33,7 +33,7 @@ public class JwtService {
                 .claim("role", role)
                 .claim("id", id)
                 .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + 604800))
+                .expiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24 * 7)) // 7 days
                 .signWith(Keys.hmacShaKeyFor(secret.getBytes()))
                 .compact()
                 ;

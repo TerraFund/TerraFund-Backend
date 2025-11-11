@@ -17,6 +17,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.server.ResponseStatusException;
 
 @AllArgsConstructor
@@ -56,12 +57,16 @@ public class AuthService {
             String accessToken = jwtService.generateAccessToken(registerRequest.getEmail(), registerRequest.getRole(), user.getId());
             String refreshToken = jwtService.generateRefreshToken(registerRequest.getEmail(), registerRequest.getRole(), user.getId());
 
-            var cookie = new Cookie("refreshToken", refreshToken);
+            Cookie cookie = new Cookie("refreshToken", refreshToken);
             cookie.setHttpOnly(true);
             cookie.setPath("/");
-            cookie.setMaxAge(604800);
-            cookie.setSecure(true);
+            cookie.setMaxAge(7 * 24 * 60 * 60); // 7 days in seconds
+            cookie.setSecure(false); // Set to true in production with HTTPS
+
             response.addCookie(cookie);
+            response.addHeader("Set-Cookie",
+                    String.format("refreshToken=%s; Path=/; HttpOnly; Max-Age=%d; SameSite=Lax",
+                            refreshToken, 7 * 24 * 60 * 60));
 
             return ResponseEntity.ok(accessToken);
         }catch (Exception e){
@@ -82,27 +87,40 @@ public class AuthService {
         String accessToken = jwtService.generateAccessToken(request.getEmail(), user.getRole(), user.getId());
         String refreshToken = jwtService.generateRefreshToken(request.getEmail(), user.getRole(), user.getId());
 
-        var cookie = new Cookie("refreshToken", refreshToken);
+        Cookie cookie = new Cookie("refreshToken", refreshToken);
         cookie.setHttpOnly(true);
         cookie.setPath("/");
-        cookie.setMaxAge(604800);
-        cookie.setSecure(false);
-        cookie.setAttribute("SameSite", "None");
+        cookie.setMaxAge(7 * 24 * 60 * 60); // 7 days in seconds
+        cookie.setSecure(false); // Set to true in production with HTTPS
+
         response.addCookie(cookie);
+        response.addHeader("Set-Cookie",
+                String.format("refreshToken=%s; Path=/; HttpOnly; Max-Age=%d; SameSite=Lax",
+                        refreshToken, 7 * 24 * 60 * 60));
 
         return ResponseEntity.ok(accessToken);
     }
 
     public ResponseEntity<?> refresh(String refreshToken){
-        if(!jwtService.validateToken(refreshToken)){
-            return ResponseEntity.badRequest().body("Invalid refresh token!");
+        if(refreshToken == null || refreshToken.isEmpty()){
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Refresh token not found!");
         }
 
-        var userId = jwtService.getEmailFromToken(refreshToken);
-        var user = userRepository.findByEmail(userId).orElseThrow();
-        var accessToken = jwtService.generateAccessToken(user.getEmail(), user.getRole(), user.getId());
+        try {
+            if(!jwtService.validateToken(refreshToken)){
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid refresh token!");
+            }
 
-        return ResponseEntity.ok(accessToken);
+            String email = jwtService.getEmailFromToken(refreshToken);
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+            String accessToken = jwtService.generateAccessToken(user.getEmail(), user.getRole(), user.getId());
+
+            return ResponseEntity.ok(accessToken);
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid or expired refresh token");
+        }
     }
 
     public ResponseEntity<?> logout(HttpServletResponse response){
@@ -110,7 +128,7 @@ public class AuthService {
         cookie.setHttpOnly(true);
         cookie.setPath("/");
         cookie.setMaxAge(0);
-        cookie.setSecure(true);
+        cookie.setSecure(false);
         response.addCookie(cookie);
 
         return ResponseEntity.ok("Logout successful!");
@@ -118,9 +136,17 @@ public class AuthService {
 
     public ResponseEntity<?> me(){
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String email = auth.getName();
 
-        return ResponseEntity.ok(userRepository.findByEmail(email).orElseThrow());
+        if (auth == null || !auth.isAuthenticated() || auth.getPrincipal().equals("anonymousUser")) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated");
+        }
+
+        String email = auth.getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        user.setPassword(null);
+        return ResponseEntity.ok(user);
     }
 
 
