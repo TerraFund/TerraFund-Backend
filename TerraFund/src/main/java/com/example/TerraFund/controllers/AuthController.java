@@ -3,10 +3,12 @@ package com.example.TerraFund.controllers;
 import com.example.TerraFund.dto.LoginRequest;
 import com.example.TerraFund.dto.RegisterRequest;
 import com.example.TerraFund.services.AuthService;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -18,12 +20,17 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(RegisterRequest registerRequest){
-        return authService.register(registerRequest);
+    public ResponseEntity<?> register(@RequestBody RegisterRequest registerRequest, HttpServletResponse response){
+        return authService.register(registerRequest, response);
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(LoginRequest loginRequest){
-        return authService.login(loginRequest);
+    public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest, HttpServletResponse response){
+        return authService.login(loginRequest, response);
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refresh(@RequestBody String refreshToken){
+        return authService.refresh(refreshToken);
     }
 }

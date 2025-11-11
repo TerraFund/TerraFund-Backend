@@ -1,5 +1,6 @@
 package com.example.TerraFund.security;
 
+import com.example.TerraFund.dto.enums.RoleEnum;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
@@ -14,11 +15,25 @@ public class JwtService {
     @Value("${application.security.jwt.secret-key}")
     private String secret;
 
-    public String generateToken(String email){
+    public String generateAccessToken(String email, RoleEnum role, Long id){
         return Jwts.builder()
                 .subject(email)
+                .claim("role", role)
+                .claim("id", id)
                 .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10))
+                .expiration(new Date(System.currentTimeMillis() + 300))
+                .signWith(Keys.hmacShaKeyFor(secret.getBytes()))
+                .compact()
+                ;
+    }
+
+    public String generateRefreshToken(String email, RoleEnum role, Long id){
+        return Jwts.builder()
+                .subject(email)
+                .claim("role", role)
+                .claim("id", id)
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + 604800))
                 .signWith(Keys.hmacShaKeyFor(secret.getBytes()))
                 .compact()
                 ;
