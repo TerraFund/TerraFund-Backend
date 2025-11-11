@@ -17,8 +17,16 @@ public class AuthService {
     private final AuthenticationProvider authenticationProvider;
 
     public ResponseEntity<?> register(RegisterRequest registerRequest){
-        if(!userRepository.existsByEmail("registerRequest.getEmail")){
+        if(userRepository.existsByEmail(registerRequest.getEmail())){
             throw new RuntimeException("Email already exists!");
+        }
+
+        if(registerRequest.getPassword().length() < 6){
+            throw new RuntimeException("Password must be at least 6 characters long!");
+        }
+
+        if(!registerRequest.getPassword().equals(registerRequest.getConfirmPassword())){
+            throw new RuntimeException("Passwords do not match!");
         }
 
         try{
