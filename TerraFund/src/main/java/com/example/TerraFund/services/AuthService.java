@@ -13,6 +13,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -84,7 +86,8 @@ public class AuthService {
         cookie.setHttpOnly(true);
         cookie.setPath("/");
         cookie.setMaxAge(604800);
-        cookie.setSecure(true);
+        cookie.setSecure(false);
+        cookie.setAttribute("SameSite", "None");
         response.addCookie(cookie);
 
         return ResponseEntity.ok(accessToken);
@@ -101,5 +104,25 @@ public class AuthService {
 
         return ResponseEntity.ok(accessToken);
     }
+
+    public ResponseEntity<?> logout(HttpServletResponse response){
+        var cookie = new Cookie("refreshToken", null);
+        cookie.setHttpOnly(true);
+        cookie.setPath("/");
+        cookie.setMaxAge(0);
+        cookie.setSecure(true);
+        response.addCookie(cookie);
+
+        return ResponseEntity.ok("Logout successful!");
+    }
+
+    public ResponseEntity<?> me(){
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth.getName();
+
+        return ResponseEntity.ok(userRepository.findByEmail(email).orElseThrow());
+    }
+
+
 
 }
