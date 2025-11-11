@@ -51,8 +51,8 @@ public class SecurityConfig{
                 .sessionManagement(c -> c.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(c ->
-                        c.requestMatchers("/auth/**", "/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html", "/actuator/**").permitAll()
-                        .anyRequest().authenticated()
+//                        c.requestMatchers("/api/auth/**", "/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html", "/actuator/**").permitAll()
+                            c.anyRequest().permitAll()
 
                 )
                 .formLogin(AbstractHttpConfigurer::disable)
