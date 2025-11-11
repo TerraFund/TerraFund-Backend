@@ -7,10 +7,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @AllArgsConstructor
 @RestController
@@ -30,7 +27,17 @@ public class AuthController {
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<?> refresh(@RequestBody String refreshToken){
+    public ResponseEntity<?> refresh(@CookieValue("refreshToken") String refreshToken){
         return authService.refresh(refreshToken);
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(HttpServletResponse response){
+        return authService.logout(response);
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<?> getAuthenticatedUser(){
+        return authService.me();
     }
 }
