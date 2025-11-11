@@ -1,5 +1,6 @@
 package com.example.TerraFund.controllers;
 
+import com.example.TerraFund.dto.LoginRequest;
 import com.example.TerraFund.dto.RegisterRequest;
 import com.example.TerraFund.services.AuthService;
 import lombok.AllArgsConstructor;
@@ -19,5 +20,10 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<?> register(RegisterRequest registerRequest){
         return authService.register(registerRequest);
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<?> login(LoginRequest loginRequest){
+        return authService.login(loginRequest);
     }
 }

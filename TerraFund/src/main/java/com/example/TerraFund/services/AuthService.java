@@ -1,12 +1,15 @@
 package com.example.TerraFund.services;
 
+import com.example.TerraFund.dto.LoginRequest;
 import com.example.TerraFund.dto.RegisterRequest;
 import com.example.TerraFund.entities.User;
 import com.example.TerraFund.repositories.UserRepository;
 import com.example.TerraFund.security.JwtService;
 import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.stereotype.Service;
 
 @AllArgsConstructor
@@ -15,6 +18,7 @@ public class AuthService {
     private UserRepository userRepository;
     private JwtService jwtService;
     private final AuthenticationProvider authenticationProvider;
+    private final AuthenticationManager authenticationManager;
 
     public ResponseEntity<?> register(RegisterRequest registerRequest){
         if(userRepository.existsByEmail(registerRequest.getEmail())){
@@ -45,5 +49,17 @@ public class AuthService {
         }catch (Exception e){
             return ResponseEntity.badRequest().body(e.getMessage());
         }
+    }
+
+    public ResponseEntity<?> login(LoginRequest request){
+        authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                        request.getEmail(),
+                        request.getPassword()
+                )
+        );
+
+        String jwt = jwtService.generateToken(request.getEmail());
+        return ResponseEntity.ok(jwt);
     }
 }
