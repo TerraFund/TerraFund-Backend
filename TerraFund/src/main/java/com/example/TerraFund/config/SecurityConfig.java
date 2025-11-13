@@ -2,6 +2,9 @@ package com.example.TerraFund.config;
 
 import com.example.TerraFund.security.JwtAuthenticationFilter;
 import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -26,11 +29,12 @@ import java.util.Arrays;
 
 @Configuration
 @EnableWebSecurity
-@AllArgsConstructor
+@RequiredArgsConstructor
+@Getter
 public class SecurityConfig{
 
-    private final UserDetailsService userDetailsService;
-    private final JwtAuthenticationFilter jwtAuthFilter;
+    private UserDetailsService userDetailsService;
+    private JwtAuthenticationFilter jwtAuthFilter;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
