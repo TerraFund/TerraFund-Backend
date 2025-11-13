@@ -2,7 +2,6 @@ package com.example.TerraFund.entities;
 
 import com.example.TerraFund.dto.enums.RoleEnum;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 
