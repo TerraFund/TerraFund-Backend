@@ -28,7 +28,7 @@ public class Land {
     private String waterSource;
     private Double elevation;
     private String region;
-    private String type; // e.g., "irrigated", "rainfed", etc.
+    private String type;
 
     @ManyToOne
     @JoinColumn(name = "owner_id")
