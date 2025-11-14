@@ -21,8 +21,8 @@ public class LandController {
 
     @PreAuthorize("hasRole('LAND_OWNER')")
     @PostMapping("/create")
-    public ResponseEntity<Land> createLand(@RequestBody Land land) {
-        Land saved = landService.create(land);
+    public ResponseEntity<Land> createLand(@RequestBody LandRequest landRequest) {
+        Land saved = landService.create(landRequest);
         return ResponseEntity.ok(saved);
     }
 
