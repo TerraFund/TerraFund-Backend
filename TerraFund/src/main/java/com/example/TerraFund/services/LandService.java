@@ -1,5 +1,6 @@
 package com.example.TerraFund.services;
 
+import com.example.TerraFund.dto.LandRequest;
 import com.example.TerraFund.model.Land;
 import com.example.TerraFund.repositories.LandRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -15,8 +16,16 @@ public class LandService {
 
     private final LandRepository landRepository;
 
-    public Land create(Land land) {
-        return landRepository.save(land);
+    public Land create(LandRequest landRequest) {
+        Land newLand = new Land();
+        newLand.setTitle(landRequest.getTitle());
+        newLand.setDescription(landRequest.getDescription());
+        newLand.setLocation(landRequest.getLocation());
+        newLand.setSizeInHectares(landRequest.getSizeInHectares());
+        newLand.setSoilType(landRequest.getSoilType());
+        newLand.setWaterSourceIsAvailable(landRequest.getWaterSourceIsAvailable());
+        newLand.setRoadAccessIsAvailable(landRequest.getRoadAccessIsAvailable());
+        return landRepository.save(newLand);
     }
 
     public Optional<Land> findById(Long id) {
