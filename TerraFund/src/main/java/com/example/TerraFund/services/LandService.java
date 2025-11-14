@@ -1,7 +1,7 @@
 package com.example.TerraFund.services;
 
 import com.example.TerraFund.dto.LandRequest;
-import com.example.TerraFund.model.Land;
+import com.example.TerraFund.entities.Land;
 import com.example.TerraFund.repositories.LandRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
