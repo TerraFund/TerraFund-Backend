@@ -4,6 +4,8 @@ import com.example.TerraFund.dto.enums.RoleEnum;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import com.example.TerraFund.model.Land;
+import java.util.List;
 
 @Getter
 @Setter
@@ -31,4 +33,7 @@ public class User {
 
     @Enumerated(EnumType.STRING)
     private RoleEnum role;
+
+    @OneToMany(mappedBy = "owner")
+    private List<Land> lands;
 }
