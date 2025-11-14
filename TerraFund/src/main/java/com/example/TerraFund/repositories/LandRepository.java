@@ -9,7 +9,7 @@ import java.util.List;
 
 public interface LandRepository extends JpaRepository<Land, Long> {
     List<Land> findByOwner(User owner);
-    List<Land> findByPublishedTrue();
+    List<Land> findByPublishedTrueAndHiddenFalse();
     List<Land> findByOwnerId(Long ownerId);
 
     @Query("SELECT l FROM Land l WHERE " +
