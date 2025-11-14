@@ -2,8 +2,10 @@ package com.example.TerraFund.services;
 
 import com.example.TerraFund.model.Land;
 import com.example.TerraFund.repositories.LandRepository;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -34,6 +36,26 @@ public class LandService {
     }
 
     public List<Land> listPublished() {
-        return landRepository.findByPublishedTrue();
+        return landRepository.findByPublishedTrueAndHiddenFalse();
+    }
+
+    public List<Land> findAll() {
+        return landRepository.findAll();
+    }
+
+    public Land hideListing(Long landId) {
+        Land land = landRepository.findById(landId)
+                .orElseThrow(() -> new EntityNotFoundException("Land not found with id " + landId));
+        land.setHidden(true);
+        land.setPublished(false);
+        return landRepository.save(land);
+    }
+
+    public Land verifyLand(Long landId) {
+        Land land = landRepository.findById(landId)
+                .orElseThrow(() -> new EntityNotFoundException("Land not found with id " + landId));
+        land.setVerified(true);
+        land.setHidden(false);
+        return landRepository.save(land);
     }
 }

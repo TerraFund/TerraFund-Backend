@@ -17,18 +17,24 @@ public class Land {
     private Long id;
 
     private String location;
-    private Double size; // in hectares or acres
+    private Double size; 
     private String cropSuitability;
     private String ownershipDocPath;
     
     @Builder.Default
     private boolean published = false;
 
+    @Builder.Default
+    private boolean verified = false;
+
+    @Builder.Default
+    private boolean hidden = false;
+
     private String soilQuality;
     private String waterSource;
     private Double elevation;
     private String region;
-    private String type; // e.g., "irrigated", "rainfed", etc.
+    private String type; 
 
     @ManyToOne
     @JoinColumn(name = "owner_id")
