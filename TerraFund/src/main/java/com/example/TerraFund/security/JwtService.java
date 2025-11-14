@@ -59,4 +59,8 @@ public class JwtService {
     public String getEmailFromToken(String token){
         return getClaims(token).getSubject();
     }
+
+    public String getRoleFromToken(String token){
+        return getClaims(token).get("role", String.class);
+    }
 }
