@@ -3,6 +3,8 @@ package com.example.TerraFund.dto.enums;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public enum RoleEnum {
+    @JsonProperty("USER")
+    USER,
     @JsonProperty("LAND_OWNER")
     LAND_OWNER,
     @JsonProperty("INVESTOR")

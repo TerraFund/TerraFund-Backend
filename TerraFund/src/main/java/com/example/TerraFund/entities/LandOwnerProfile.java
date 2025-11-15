@@ -37,7 +37,6 @@ public class LandOwnerProfile {
     @Column(nullable = false)
     private String totalLandsListed;
 
-
     @OneToOne
     @JoinColumn(name = "user_id", nullable = false, unique = true)
     private User user;

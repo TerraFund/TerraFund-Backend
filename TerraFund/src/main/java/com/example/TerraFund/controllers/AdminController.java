@@ -1,7 +1,7 @@
 package com.example.TerraFund.controllers;
 
 import com.example.TerraFund.entities.User;
-import com.example.TerraFund.model.Land;
+import com.example.TerraFund.entities.Land;
 import com.example.TerraFund.repositories.UserRepository;
 import com.example.TerraFund.services.LandService;
 import lombok.RequiredArgsConstructor;

@@ -22,8 +22,14 @@ public class User {
     @Column(nullable = false)
     private String password;
 
-    @Enumerated(EnumType.STRING)
-    private RoleEnum role;
+    @Column(nullable = false)
+    private String confirmPassword;
+
+    @Column(nullable = false)
+    private String phoneNumber;
+
+    @Column(nullable = false)
+    private RoleEnum role = RoleEnum.USER;
 
     @OneToMany(mappedBy = "owner")
     private List<Land> lands;
