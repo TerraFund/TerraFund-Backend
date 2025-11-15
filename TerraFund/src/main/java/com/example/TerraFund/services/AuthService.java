@@ -204,5 +204,4 @@ public class AuthService {
         return ResponseEntity.ok(profile);
     }
 
-
 }
