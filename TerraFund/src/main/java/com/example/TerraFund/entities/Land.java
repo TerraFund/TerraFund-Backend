@@ -1,20 +1,20 @@
 package com.example.TerraFund.entities;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
 @Table(name = "lands")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder(toBuilder = true)
 public class Land {
 
     @Id
@@ -23,24 +23,20 @@ public class Land {
 
     @Column(nullable = false)
     private String location;
-    private Double size; 
+
+    private Double size;
     private String cropSuitability;
     private String ownershipDocPath;
-    
-    @Builder.Default
+
     private boolean published = false;
-
-    @Builder.Default
     private boolean verified = false;
-
-    @Builder.Default
     private boolean hidden = false;
 
     private String soilQuality;
     private String waterSource;
     private Double elevation;
     private String region;
-    private String type; 
+    private String type;
 
     @Column(nullable = false)
     private Double sizeInHectares;
@@ -54,15 +50,13 @@ public class Land {
     private String description;
 
     private Boolean waterSourceIsAvailable;
-
     private Boolean roadAccessIsAvailable;
 
-    List<String> demoImages;
+    @ElementCollection
+    private List<String> demoImages;
 
     private LocalDateTime createdAt;
-
     private LocalDateTime updatedAt;
-
 
     @PrePersist
     public void onCreate() {

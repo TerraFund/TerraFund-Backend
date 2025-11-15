@@ -1,14 +1,13 @@
 package com.example.TerraFund.controllers;
 
-import com.example.TerraFund.dto.ChooseRoleRequest;
-import com.example.TerraFund.dto.LoginRequest;
-import com.example.TerraFund.dto.RegisterRequest;
+import com.example.TerraFund.dto.*;
 import com.example.TerraFund.services.AuthService;
 
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.AllArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 
@@ -55,5 +54,17 @@ public class AuthController {
     @PostMapping("/choose-role")
     public ResponseEntity<?> chooseRole(@RequestBody ChooseRoleRequest request) {
         return authService.chooseRole(request);
+    }
+
+    @PreAuthorize("hasRole('INVESTOR')")
+    @PostMapping("/account-info/investor")
+    public ResponseEntity<?> investorProfile(@RequestBody InvestorProfileRequest request){
+        return authService.createInvestorProfile(request);
+    }
+
+    @PreAuthorize("hasRole('LAND_OWNER')")
+    @PostMapping("/account-info/land-owner")
+    public ResponseEntity<?> landOwnerProfile(@RequestBody LandOwnerProfileRequest request){
+        return authService.createLandOwnerProfile(request);
     }
 }
