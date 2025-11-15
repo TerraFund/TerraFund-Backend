@@ -22,15 +22,7 @@ public class RegisterRequest {
     @NotBlank(message = "Please re-enter the password")
     String confirmPassword;
 
-    @NotBlank(message = "first name is required")
-    String firstName;
-
-    @NotBlank(message ="last name is required")
-    String lastName;
-
     @NotBlank(message = "phone number is required")
     String phoneNumber;
 
-    @NotBlank(message = "Choose your role: Investor || LandOwner")
-    RoleEnum role;
 }

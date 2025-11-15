@@ -1,9 +1,11 @@
 package com.example.TerraFund.services;
 
-import com.example.TerraFund.dto.ChooseRoleRequest;
-import com.example.TerraFund.dto.LoginRequest;
-import com.example.TerraFund.dto.RegisterRequest;
+import com.example.TerraFund.dto.*;
+import com.example.TerraFund.entities.InvestorProfile;
+import com.example.TerraFund.entities.LandOwnerProfile;
 import com.example.TerraFund.entities.User;
+import com.example.TerraFund.repositories.InvestorProfileRepository;
+import com.example.TerraFund.repositories.LandOwnerProfileRepository;
 import com.example.TerraFund.repositories.UserRepository;
 import com.example.TerraFund.security.JwtService;
 import jakarta.servlet.http.Cookie;
@@ -18,14 +20,18 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
+import com.example.TerraFund.security.CurrentUser;
 
 @AllArgsConstructor
 @Service
 public class AuthService {
+    private final InvestorProfileRepository investorProfileRepository;
+    private final LandOwnerProfileRepository landOwnerProfileRepository;
     private UserRepository userRepository;
     private JwtService jwtService;
     private final AuthenticationManager authenticationManager;
     private final PasswordEncoder passwordEncoder;
+    private CurrentUser currentUser;
 
     public ResponseEntity<?> register(RegisterRequest registerRequest, HttpServletResponse response){
         if(userRepository.existsByEmail(registerRequest.getEmail())){
@@ -44,12 +50,13 @@ public class AuthService {
             User user = new User();
 
             user.setEmail(registerRequest.getEmail());
+            user.setPhoneNumber(registerRequest.getPhoneNumber());
             user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
 
             userRepository.save(user);
 
-            String accessToken = jwtService.generateAccessToken(registerRequest.getEmail(), registerRequest.getRole(), user.getId());
-            String refreshToken = jwtService.generateRefreshToken(registerRequest.getEmail(), registerRequest.getRole(), user.getId());
+            String accessToken = jwtService.generateAccessToken(registerRequest.getEmail(), user.getRole(), user.getId());
+            String refreshToken = jwtService.generateRefreshToken(registerRequest.getEmail(), user.getRole(), user.getId());
 
             Cookie cookie = new Cookie("refreshToken", refreshToken);
             cookie.setHttpOnly(true);
@@ -129,30 +136,14 @@ public class AuthService {
     }
 
     public ResponseEntity<?> me(){
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-
-        if (auth == null || !auth.isAuthenticated() || auth.getPrincipal().equals("anonymousUser")) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated");
-        }
-
-        String email = auth.getName();
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        User user = currentUser.get();
 
         user.setPassword(null);
         return ResponseEntity.ok(user);
     }
 
     public ResponseEntity<?> chooseRole(ChooseRoleRequest request){
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-
-        if(auth == null || !auth.isAuthenticated() || auth.getPrincipal().equals("anonymousUser")){
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated");
-        }
-
-        String email = auth.getName();
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        User user = currentUser.get();
 
         if(user.getRole().equals("LAND_OWNER") || request.getRole().equals("INVESTOR")){
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You cannot change your role;");
@@ -161,9 +152,56 @@ public class AuthService {
         user.setRole(request.getRole());
         userRepository.save(user);
 
-        String newToken = jwtService.generateAccessToken(email, user.getRole(), user.getId());
+        String newToken = jwtService.generateAccessToken(user.getEmail(), user.getRole(), user.getId());
 
         return ResponseEntity.ok(newToken);
+    }
+
+    public ResponseEntity<?> createInvestorProfile(InvestorProfileRequest request){
+        User user = currentUser.get();
+
+        if(!user.getRole().equals("INVESTOR")){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You must be an investor to create a profile!");
+        }
+
+        InvestorProfile profile = new InvestorProfile();
+
+        profile.setFirstName(request.getFirstName());
+        profile.setLastName(request.getLastName());
+        profile.setEmail(user.getEmail());
+        profile.setPhoneNumber(user.getPhoneNumber());
+        profile.setProfilePictureUrl(request.getProfilePictureUrl());
+        profile.setNationalIdNumber(request.getNationalIdNumber());
+        profile.setCompany(request.getCompany());
+        profile.setOccupation(request.getOccupation());
+        profile.setMinInvestmentBudget(request.getMinInvestmentBudget());
+        profile.setMaxInvestmentBudget(request.getMaxInvestmentBudget());
+        profile.setUser(user);
+
+        investorProfileRepository.save(profile);
+        return ResponseEntity.ok(profile);
+    }
+
+    public ResponseEntity<?> createLandOwnerProfile(LandOwnerProfileRequest request){
+        User user = currentUser.get();
+
+        if(!user.getRole().equals("LAND_OWNER")){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You must be a land owner to create a profile!");
+        }
+
+        LandOwnerProfile profile = new LandOwnerProfile();
+
+        profile.setFirstName(request.getFirstName());
+        profile.setLastName(request.getLastName());
+        profile.setEmail(user.getEmail());
+        profile.setPhoneNumber(user.getPhoneNumber());
+        profile.setProfilePictureUrl(request.getProfilePictureUrl());
+        profile.setNationalIdNumber(request.getNationalIdNumber());
+
+        profile.setUser(user);
+
+        landOwnerProfileRepository.save(profile);
+        return ResponseEntity.ok(profile);
     }
 
 
