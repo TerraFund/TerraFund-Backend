@@ -1,7 +1,13 @@
 package com.example.TerraFund.entities;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
 
+@Entity
+@Table(name = "investor_profiles")
+@Getter
+@Setter
 public class InvestorProfile {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -34,10 +40,10 @@ public class InvestorProfile {
     @Column(nullable = true)
     private String occupation;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private Long minInvestmentBudget;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private Long maxInvestmentBudget;
 
     @OneToOne
