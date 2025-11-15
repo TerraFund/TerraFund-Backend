@@ -1,5 +1,6 @@
 package com.example.TerraFund.controllers;
 
+import com.example.TerraFund.dto.ChooseRoleRequest;
 import com.example.TerraFund.dto.LoginRequest;
 import com.example.TerraFund.dto.RegisterRequest;
 import com.example.TerraFund.services.AuthService;
@@ -49,5 +50,10 @@ public class AuthController {
     @GetMapping("/me")
     public ResponseEntity<?> getAuthenticatedUser() {
         return authService.me();
+    }
+
+    @PostMapping("/choose-role")
+    public ResponseEntity<?> chooseRole(@RequestBody ChooseRoleRequest request) {
+        return authService.chooseRole(request);
     }
 }

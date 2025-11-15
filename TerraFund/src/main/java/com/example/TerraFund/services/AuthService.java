@@ -1,5 +1,6 @@
 package com.example.TerraFund.services;
 
+import com.example.TerraFund.dto.ChooseRoleRequest;
 import com.example.TerraFund.dto.LoginRequest;
 import com.example.TerraFund.dto.RegisterRequest;
 import com.example.TerraFund.entities.User;
@@ -44,10 +45,6 @@ public class AuthService {
 
             user.setEmail(registerRequest.getEmail());
             user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
-            user.setRole(registerRequest.getRole());
-            user.setFirstName(registerRequest.getFirstName());
-            user.setLastName(registerRequest.getLastName());
-            user.setPhoneNumber(registerRequest.getPhoneNumber());
 
             userRepository.save(user);
 
@@ -146,6 +143,28 @@ public class AuthService {
         return ResponseEntity.ok(user);
     }
 
+    public ResponseEntity<?> chooseRole(ChooseRoleRequest request){
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
+        if(auth == null || !auth.isAuthenticated() || auth.getPrincipal().equals("anonymousUser")){
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated");
+        }
+
+        String email = auth.getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        if(user.getRole().equals("LAND_OWNER") || request.getRole().equals("INVESTOR")){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You cannot change your role;");
+        }
+
+        user.setRole(request.getRole());
+        userRepository.save(user);
+
+        String newToken = jwtService.generateAccessToken(email, user.getRole(), user.getId());
+
+        return ResponseEntity.ok(newToken);
+    }
 
 
 }
