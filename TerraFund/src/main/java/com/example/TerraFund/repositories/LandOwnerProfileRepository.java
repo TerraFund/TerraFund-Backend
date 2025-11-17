@@ -7,5 +7,5 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface LandOwnerProfileRepository extends JpaRepository <LandOwnerProfile, Long>{
-    Optional<LandOwnerProfile> findByUserEmail(String email)
+    Optional<LandOwnerProfile> findByUserEmail(String email);
 }
