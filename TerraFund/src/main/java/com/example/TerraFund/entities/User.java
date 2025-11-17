@@ -4,6 +4,8 @@ import com.example.TerraFund.dto.enums.RoleEnum;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter
@@ -29,6 +31,12 @@ public class User {
 
     @Column(nullable = false)
     private Boolean otpVerified = false;
+
+    @Column(nullable = true)
+    private String resetToken;
+
+    @Column(nullable = true)
+    private LocalDateTime resetTokenExpiry;
 
     @Column(nullable = false)
     private RoleEnum role = RoleEnum.USER;

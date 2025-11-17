@@ -25,6 +25,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import com.example.TerraFund.security.CurrentUser;
 
+import java.time.LocalDateTime;
 import java.util.Objects;
 
 @AllArgsConstructor
@@ -161,6 +162,44 @@ public class AuthService {
         response.addCookie(cookie);
 
         return ResponseEntity.ok("Logout successful!");
+    }
+
+    public ResponseEntity<?> forgotPassword(ForgotPasswordRequest request) {
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new RuntimeException("Email does not exist!"));
+        String resetToken = jwtService.generateResetToken(request.getEmail());
+
+        user.setResetToken(resetToken);
+        user.setResetTokenExpiry(LocalDateTime.now().plusMinutes(15));
+        userRepository.save(user);
+
+        //Frontend link to reset password
+        String resetLink = "http://localhost:3000/reset-password?token=" + resetToken;
+
+        emailService.sendEmail(
+                user.getEmail(),
+                "Password Reset",
+                "Click this link to reset your password: " + resetLink
+        );
+
+        return ResponseEntity.ok("Password reset link sent to email if it exists.");
+    }
+
+    public ResponseEntity<?> resetPassword(ResetPasswordRequest request) {
+        User user = userRepository.findByResetToken(request.getToken())
+                .orElseThrow(() -> new RuntimeException("Invalid or expired token"));
+
+        if (user.getResetTokenExpiry() == null || user.getResetTokenExpiry().isBefore(LocalDateTime.now())) {
+            throw new RuntimeException("Reset token has expired");
+        }
+
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+
+        user.setResetToken(null);
+        user.setResetTokenExpiry(null);
+
+        userRepository.save(user);
+        return ResponseEntity.ok("Password has been reset successfully.");
     }
 
     public ResponseEntity<?> me(){

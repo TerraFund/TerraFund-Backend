@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
+import java.util.UUID;
 
 @Service
 public class JwtService {
@@ -66,5 +67,9 @@ public class JwtService {
 
     public String generateOtp(){
         return String.valueOf((int)(Math.random() * 900000) + 100000);
+    }
+
+    public String generateResetToken(String email) {
+        return UUID.randomUUID().toString();
     }
 }
