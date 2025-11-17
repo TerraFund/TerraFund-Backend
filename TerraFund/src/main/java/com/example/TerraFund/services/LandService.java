@@ -1,6 +1,6 @@
 package com.example.TerraFund.services;
 
-import com.example.TerraFund.dto.requests.LandRequest;
+import com.example.TerraFund.dto.requests.CreateLandRequest;
 import com.example.TerraFund.entities.Land;
 import com.example.TerraFund.repositories.LandRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -16,15 +16,15 @@ public class LandService {
 
     private final LandRepository landRepository;
 
-    public Land create(LandRequest landRequest) {
+    public Land create(CreateLandRequest createLandRequest) {
         Land newLand = new Land();
-        newLand.setTitle(landRequest.getTitle());
-        newLand.setDescription(landRequest.getDescription());
-        newLand.setLocation(landRequest.getLocation());
-        newLand.setSizeInHectares(landRequest.getSizeInHectares());
-        newLand.setSoilType(landRequest.getSoilType());
-        newLand.setWaterSourceIsAvailable(landRequest.getWaterSourceIsAvailable());
-        newLand.setRoadAccessIsAvailable(landRequest.getRoadAccessIsAvailable());
+        newLand.setTitle(createLandRequest.getTitle());
+        newLand.setDescription(createLandRequest.getDescription());
+        newLand.setLocation(createLandRequest.getLocation());
+        newLand.setSizeInHectares(createLandRequest.getSizeInHectares());
+        newLand.setSoilType(createLandRequest.getSoilType());
+        newLand.setWaterSourceIsAvailable(createLandRequest.getWaterSourceIsAvailable());
+        newLand.setRoadAccessIsAvailable(createLandRequest.getRoadAccessIsAvailable());
         return landRepository.save(newLand);
     }
 
