@@ -26,10 +26,10 @@ public class User {
     @Column(nullable = false)
     private String phoneNumber;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private String otp;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private Boolean otpVerified = false;
 
     @Column(nullable = true)
