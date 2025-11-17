@@ -1,4 +1,4 @@
-package com.example.TerraFund.services;
+package com.example.TerraFund.security;
 
 import com.example.TerraFund.entities.User;
 import com.example.TerraFund.repositories.UserRepository;

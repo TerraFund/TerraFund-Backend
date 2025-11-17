@@ -55,7 +55,7 @@ pom.xml.next
 release.properties
 
 # Application properties with sensitive data
-application-local.properties
+application.properties
 application-prod.properties
 
 # Environment variables
