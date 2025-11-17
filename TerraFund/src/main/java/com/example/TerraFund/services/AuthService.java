@@ -1,9 +1,11 @@
 package com.example.TerraFund.services;
 
+import com.example.TerraFund.Utils.EmailService;
 import com.example.TerraFund.dto.enums.RoleEnum;
 import com.example.TerraFund.dto.requests.*;
 import com.example.TerraFund.dto.responses.InvestorProfileResponse;
 import com.example.TerraFund.dto.responses.LandOwnerProfileResponse;
+import com.example.TerraFund.dto.responses.RegisterResponse;
 import com.example.TerraFund.entities.InvestorProfile;
 import com.example.TerraFund.entities.LandOwnerProfile;
 import com.example.TerraFund.entities.User;
@@ -22,7 +24,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import com.example.TerraFund.security.CurrentUser;
-import com.example.TerraFund.dto.responses.InvestorProfileResponse;
+
+import java.util.Objects;
 
 @AllArgsConstructor
 @Service
@@ -34,6 +37,7 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final PasswordEncoder passwordEncoder;
     private CurrentUser currentUser;
+    private EmailService emailService;
 
     public ResponseEntity<?> register(RegisterRequest registerRequest, HttpServletResponse response){
         if(userRepository.existsByEmail(registerRequest.getEmail())){
@@ -51,9 +55,12 @@ public class AuthService {
         try{
             User user = new User();
 
+            String otp = jwtService.generateOtp();
+
             user.setEmail(registerRequest.getEmail());
             user.setPhoneNumber(registerRequest.getPhoneNumber());
             user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
+            user.setOtp(otp);
 
             userRepository.save(user);
 
@@ -71,10 +78,29 @@ public class AuthService {
                     String.format("refreshToken=%s; Path=/; HttpOnly; Max-Age=%d; SameSite=Lax",
                             refreshToken, 7 * 24 * 60 * 60));
 
-            return ResponseEntity.ok(accessToken);
+            emailService.sendEmail(user.getEmail(), "Verify your account", "Your OTP is: " + otp);
+
+            return ResponseEntity.ok(
+                    new RegisterResponse(
+                            accessToken,
+                            otp
+                    )
+            );
         }catch (Exception e){
             return ResponseEntity.badRequest().body(e.getMessage());
         }
+    }
+
+    public ResponseEntity<?> verify(VerifyRequest verifyRequest, HttpServletResponse response){
+        User user = currentUser.get();
+
+        if(!Objects.equals(user.getOtp(), verifyRequest.getOtp())){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid OTP!");
+        }
+        user.setOtp(null);
+        user.setOtpVerified(true);
+        userRepository.save(user);
+        return ResponseEntity.ok("OTP verified successfully!");
     }
 
     public ResponseEntity<?> login(LoginRequest request, HttpServletResponse response){

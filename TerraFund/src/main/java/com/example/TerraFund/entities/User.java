@@ -25,6 +25,12 @@ public class User {
     private String phoneNumber;
 
     @Column(nullable = false)
+    private String otp;
+
+    @Column(nullable = false)
+    private Boolean otpVerified = false;
+
+    @Column(nullable = false)
     private RoleEnum role = RoleEnum.USER;
 
     @OneToMany(mappedBy = "owner")
