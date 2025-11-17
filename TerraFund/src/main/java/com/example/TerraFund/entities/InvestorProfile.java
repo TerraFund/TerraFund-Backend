@@ -3,6 +3,8 @@ package com.example.TerraFund.entities;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import java.util.List;
+import com.example.TerraFund.entities.Land;
 
 @Entity
 @Table(name = "investor_profiles")
@@ -50,4 +52,11 @@ public class InvestorProfile {
     @JoinColumn(name = "user_id", nullable = false, unique = true)
     private User user;
 
+    @OneToMany
+    @JoinColumn(name = "proposal_id")
+    private List<LandProposal> proposals;
+
+    @OneToMany
+    @JoinColumn(name = "land_id")
+    private List<Land> lands;
 }
