@@ -63,4 +63,8 @@ public class JwtService {
     public String getRoleFromToken(String token){
         return getClaims(token).get("role", String.class);
     }
+
+    public String generateOtp(){
+        return String.valueOf((int)(Math.random() * 900000) + 100000);
+    }
 }

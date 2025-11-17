@@ -31,6 +31,11 @@ public class AuthController {
         return authService.register(registerRequest, response);
     }
 
+    @PostMapping("/verify")
+    public ResponseEntity<?> verify(@RequestBody VerifyRequest verifyRequest, HttpServletResponse response) {
+        return authService.verify(verifyRequest, response);
+    }
+
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest, HttpServletResponse response) {
         return authService.login(loginRequest, response);
