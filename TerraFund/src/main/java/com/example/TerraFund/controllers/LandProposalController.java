@@ -4,6 +4,8 @@ import com.example.TerraFund.dto.requests.LandProposalRequest;
 import com.example.TerraFund.services.LandProposalService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -14,8 +16,10 @@ import java.util.UUID;
 @Tag(name = "4. Land Proposal", description = "Land Proposal-related endpoints")
 @RequestMapping("/land-proposal")
 @PreAuthorize("hasRole('INVESTOR')")
+@RequiredArgsConstructor
 public class LandProposalController {
-    LandProposalService service;
+
+    private final LandProposalService service;
 
     @Operation(summary = "Create new land proposal", tags = {"4. Land Proposal"})
     @PostMapping("/create")
