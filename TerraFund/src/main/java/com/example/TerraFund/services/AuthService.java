@@ -1,6 +1,9 @@
 package com.example.TerraFund.services;
 
-import com.example.TerraFund.dto.*;
+import com.example.TerraFund.dto.enums.RoleEnum;
+import com.example.TerraFund.dto.requests.*;
+import com.example.TerraFund.dto.responses.InvestorProfileResponse;
+import com.example.TerraFund.dto.responses.LandOwnerProfileResponse;
 import com.example.TerraFund.entities.InvestorProfile;
 import com.example.TerraFund.entities.LandOwnerProfile;
 import com.example.TerraFund.entities.User;
@@ -15,12 +18,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import com.example.TerraFund.security.CurrentUser;
+import com.example.TerraFund.dto.responses.InvestorProfileResponse;
 
 @AllArgsConstructor
 @Service
@@ -145,7 +147,7 @@ public class AuthService {
     public ResponseEntity<?> chooseRole(ChooseRoleRequest request){
         User user = currentUser.get();
 
-        if(user.getRole().equals("LAND_OWNER") || request.getRole().equals("INVESTOR")){
+        if(user.getRole() == RoleEnum.INVESTOR || user.getRole() == RoleEnum.LAND_OWNER){
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You cannot change your role;");
         }
 
@@ -160,7 +162,10 @@ public class AuthService {
     public ResponseEntity<?> createInvestorProfile(InvestorProfileRequest request){
         User user = currentUser.get();
 
-        if(!user.getRole().equals("INVESTOR")){
+        System.out.println("ROLE FROM USER = " + user.getRole());
+        System.out.println("CURRENT USER EMAIL = " + user.getEmail());
+
+        if(user.getRole() != RoleEnum.INVESTOR){
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You must be an investor to create a profile!");
         }
 
@@ -168,6 +173,7 @@ public class AuthService {
 
         profile.setFirstName(request.getFirstName());
         profile.setLastName(request.getLastName());
+        profile.setAddress(request.getAddress());
         profile.setEmail(user.getEmail());
         profile.setPhoneNumber(user.getPhoneNumber());
         profile.setProfilePictureUrl(request.getProfilePictureUrl());
@@ -179,13 +185,27 @@ public class AuthService {
         profile.setUser(user);
 
         investorProfileRepository.save(profile);
-        return ResponseEntity.ok(profile);
+        return ResponseEntity.ok(
+                new InvestorProfileResponse(
+                        profile.getId(),
+                        profile.getFirstName(),
+                        profile.getAddress(),
+                        profile.getLastName(),
+                        profile.getPhoneNumber(),
+                        profile.getProfilePictureUrl(),
+                        profile.getNationalIdNumber(),
+                        profile.getCompany(),
+                        profile.getOccupation(),
+                        profile.getMinInvestmentBudget(),
+                        profile.getMaxInvestmentBudget()
+                )
+        );
     }
 
     public ResponseEntity<?> createLandOwnerProfile(LandOwnerProfileRequest request){
         User user = currentUser.get();
 
-        if(!user.getRole().equals("LAND_OWNER")){
+        if(user.getRole() != RoleEnum.LAND_OWNER){
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You must be a land owner to create a profile!");
         }
 
@@ -201,7 +221,17 @@ public class AuthService {
         profile.setUser(user);
 
         landOwnerProfileRepository.save(profile);
-        return ResponseEntity.ok(profile);
+        return ResponseEntity.ok(
+                new LandOwnerProfileResponse(
+                        profile.getId(),
+                        profile.getFirstName(),
+                        profile.getLastName(),
+                        profile.getAddress(),
+                        profile.getPhoneNumber(),
+                        profile.getProfilePictureUrl(),
+                        profile.getNationalIdNumber()
+                )
+        );
     }
 
 }

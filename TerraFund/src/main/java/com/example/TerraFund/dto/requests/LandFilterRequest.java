@@ -1,4 +1,4 @@
-package com.example.TerraFund.dto;
+package com.example.TerraFund.dto.requests;
 
 import lombok.Data;
 

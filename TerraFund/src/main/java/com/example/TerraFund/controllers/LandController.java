@@ -1,6 +1,6 @@
 package com.example.TerraFund.controllers;
 
-import com.example.TerraFund.dto.LandRequest;
+import com.example.TerraFund.dto.requests.LandRequest;
 import com.example.TerraFund.entities.Land;
 import com.example.TerraFund.services.LandService;
 import lombok.RequiredArgsConstructor;

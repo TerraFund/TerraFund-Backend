@@ -1,6 +1,6 @@
 package com.example.TerraFund.controllers;
 
-import com.example.TerraFund.dto.*;
+import com.example.TerraFund.dto.requests.*;
 import com.example.TerraFund.services.AuthService;
 
 import jakarta.servlet.http.HttpServletResponse;
@@ -59,6 +59,7 @@ public class AuthController {
     @PreAuthorize("hasRole('INVESTOR')")
     @PostMapping("/account-info/investor")
     public ResponseEntity<?> investorProfile(@RequestBody InvestorProfileRequest request){
+        System.out.println("DID WE REACH THE CONTROLLER?");
         return authService.createInvestorProfile(request);
     }
 

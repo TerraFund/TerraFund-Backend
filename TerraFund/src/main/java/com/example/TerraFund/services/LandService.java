@@ -1,6 +1,6 @@
 package com.example.TerraFund.services;
 
-import com.example.TerraFund.dto.LandRequest;
+import com.example.TerraFund.dto.requests.LandRequest;
 import com.example.TerraFund.entities.Land;
 import com.example.TerraFund.repositories.LandRepository;
 import jakarta.persistence.EntityNotFoundException;
