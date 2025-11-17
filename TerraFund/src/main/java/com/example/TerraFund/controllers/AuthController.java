@@ -83,4 +83,9 @@ public class AuthController {
     public ResponseEntity<?> landOwnerProfile(@RequestBody LandOwnerProfileRequest request){
         return authService.createLandOwnerProfile(request);
     }
+
+    @PutMapping("/account-info/update")
+    public ResponseEntity<?> updateAccountInfo(@RequestBody UpdateInvestorAccountInfoRequest request){
+        return authService.updateAccountInfo(request);
+    }
 }

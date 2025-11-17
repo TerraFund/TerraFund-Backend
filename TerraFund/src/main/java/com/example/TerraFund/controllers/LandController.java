@@ -1,6 +1,6 @@
 package com.example.TerraFund.controllers;
 
-import com.example.TerraFund.dto.requests.LandRequest;
+import com.example.TerraFund.dto.requests.CreateLandRequest;
 import com.example.TerraFund.entities.Land;
 import com.example.TerraFund.services.LandService;
 import lombok.RequiredArgsConstructor;
@@ -21,8 +21,8 @@ public class LandController {
 
     @PreAuthorize("hasRole('LAND_OWNER')")
     @PostMapping("/create")
-    public ResponseEntity<Land> createLand(@RequestBody LandRequest landRequest) {
-        Land saved = landService.create(landRequest);
+    public ResponseEntity<Land> createLand(@RequestBody CreateLandRequest createLandRequest) {
+        Land saved = landService.create(createLandRequest);
         return ResponseEntity.ok(saved);
     }
 

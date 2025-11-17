@@ -205,8 +205,43 @@ public class AuthService {
     public ResponseEntity<?> me(){
         User user = currentUser.get();
 
-        user.setPassword(null);
-        return ResponseEntity.ok(user);
+        if(user.getRole() == RoleEnum.INVESTOR){
+            InvestorProfile profile = investorProfileRepository.findByUserEmail(user.getEmail())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Investor profile not found"));
+
+            return ResponseEntity.ok(
+                    new InvestorProfileResponse(
+                            profile.getId(),
+                            profile.getFirstName(),
+                            profile.getAddress(),
+                            profile.getLastName(),
+                            profile.getPhoneNumber(),
+                            profile.getProfilePictureUrl(),
+                            profile.getNationalIdNumber(),
+                            profile.getCompany(),
+                            profile.getOccupation(),
+                            profile.getMinInvestmentBudget(),
+                            profile.getMaxInvestmentBudget()
+                    )
+            );
+        }else if(user.getRole() == RoleEnum.LAND_OWNER){
+            LandOwnerProfile profile = landOwnerProfileRepository.findByUserEmail(user.getEmail())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Land owner profile not found"));
+
+            return ResponseEntity.ok(
+                    new LandOwnerProfileResponse(
+                            profile.getId(),
+                            profile.getFirstName(),
+                            profile.getLastName(),
+                            profile.getAddress(),
+                            profile.getPhoneNumber(),
+                            profile.getProfilePictureUrl(),
+                            profile.getNationalIdNumber()
+                    )
+            );
+        }else{
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You must be an investor or a land owner to access this endpoint!");
+        }
     }
 
     public ResponseEntity<?> chooseRole(ChooseRoleRequest request){
@@ -226,9 +261,6 @@ public class AuthService {
 
     public ResponseEntity<?> createInvestorProfile(InvestorProfileRequest request){
         User user = currentUser.get();
-
-        System.out.println("ROLE FROM USER = " + user.getRole());
-        System.out.println("CURRENT USER EMAIL = " + user.getEmail());
 
         if(user.getRole() != RoleEnum.INVESTOR){
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You must be an investor to create a profile!");
@@ -299,4 +331,74 @@ public class AuthService {
         );
     }
 
+    public ResponseEntity<?> updateInvestorProfile(InvestorProfileRequest request){
+        User user = currentUser.get();
+        InvestorProfile profile = new InvestorProfile();
+
+        if(user.getRole() != RoleEnum.INVESTOR){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You must be an investor to update a profile!");
+        }
+
+        if(!Objects.equals(user.getId(), profile.getUser().getId())){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You cannot update another investor's profile!");
+        }
+
+        profile.setFirstName(request.getFirstName());
+        profile.setLastName(request.getLastName());
+        profile.setAddress(request.getAddress());
+        profile.setProfilePictureUrl(request.getProfilePictureUrl());
+        profile.setNationalIdNumber(request.getNationalIdNumber());
+        profile.setCompany(request.getCompany());
+        profile.setOccupation(request.getOccupation());
+        profile.setMinInvestmentBudget(request.getMinInvestmentBudget());
+        profile.setMaxInvestmentBudget(request.getMaxInvestmentBudget());
+
+        return ResponseEntity.ok(
+                new InvestorProfileResponse(
+                        profile.getId(),
+                        profile.getFirstName(),
+                        profile.getAddress(),
+                        profile.getLastName(),
+                        profile.getPhoneNumber(),
+                        profile.getProfilePictureUrl(),
+                        profile.getNationalIdNumber(),
+                        profile.getCompany(),
+                        profile.getOccupation(),
+                        profile.getMinInvestmentBudget(),
+                        profile.getMaxInvestmentBudget()
+                )
+        );
+    }
+
+    public ResponseEntity<?> updateLandOwnerProfile(LandOwnerProfileRequest request){
+        User user = currentUser.get();
+        LandOwnerProfile profile = new LandOwnerProfile();
+
+        if(user.getRole() != RoleEnum.LAND_OWNER){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You must be a land owner to update a profile!");
+        }
+
+        if(!Objects.equals(user.getId(), profile.getUser().getId())){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You cannot update another land owner's profile!");
+        }
+
+        profile.setFirstName(request.getFirstName());
+        profile.setLastName(request.getLastName());
+        profile.setAddress(request.getAddress());
+        profile.setProfilePictureUrl(request.getProfilePictureUrl());
+        profile.setNationalIdNumber(request.getNationalIdNumber());
+        profile.setPhoneNumber(user.getPhoneNumber());
+
+        return ResponseEntity.ok(
+                new LandOwnerProfileResponse(
+                        profile.getId(),
+                        profile.getFirstName(),
+                        profile.getAddress(),
+                        profile.getLastName(),
+                        profile.getPhoneNumber(),
+                        profile.getProfilePictureUrl(),
+                        profile.getNationalIdNumber()
+                )
+        );
+    }
 }

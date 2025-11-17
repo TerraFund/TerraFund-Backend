@@ -6,7 +6,7 @@ import lombok.Data;
 import java.util.List;
 
 @Data
-public class LandRequest {
+public class CreateLandRequest {
     @NotBlank(message = "Title is required")
     private String title;
 
