@@ -11,6 +11,7 @@ import com.example.TerraFund.repositories.LandRepository;
 import com.example.TerraFund.repositories.UserRepository;
 import com.example.TerraFund.security.CurrentUser;
 import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import com.example.TerraFund.Utils.EmailService;
@@ -20,15 +21,14 @@ import java.util.Objects;
 import java.util.UUID;
 
 @Service
-@AllArgsConstructor
+@RequiredArgsConstructor
 
 public class LandProposalService {
-    private  LandRepository landRepository;
-    private LandProposalRepository repository;
-    private LandProposalRepository landOwnerProfileRepository;
-    private CurrentUser currentUser;
-    private EmailService emailService;
-    private UserRepository userRepository;
+    private final LandRepository landRepository;
+    private final LandProposalRepository repository;
+    private final CurrentUser currentUser;
+    private final EmailService emailService;
+    private final UserRepository userRepository;
 
     public ResponseEntity<?> createNewLandProposal(LandProposalRequest request) {
         User user = currentUser.get();

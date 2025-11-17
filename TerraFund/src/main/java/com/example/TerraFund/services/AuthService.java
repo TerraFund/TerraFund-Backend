@@ -79,7 +79,7 @@ public class AuthService {
                     String.format("refreshToken=%s; Path=/; HttpOnly; Max-Age=%d; SameSite=Lax",
                             refreshToken, 7 * 24 * 60 * 60));
 
-            emailService.sendEmail(user.getEmail(), "Verify your account", "Your OTP is: " + otp);
+            //emailService.sendEmail(user.getEmail(), "Verify your account", "Your OTP is: " + otp);
 
             return ResponseEntity.ok(
                     new RegisterResponse(
