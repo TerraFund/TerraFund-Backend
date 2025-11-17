@@ -41,4 +41,13 @@ public class LandProposalController {
         return this.service.acceptLandProposal(id);
     }
 
+    @PatchMapping("/reject/:id")
+    public ResponseEntity<?> rejectLandProposal(@PathVariable UUID id) {
+        return this.service.rejectLandProposal(id);
+    }
+
+    @PatchMapping("/cancel/:id")
+    public ResponseEntity<?> cancelLandProposal(@PathVariable UUID id) {
+        return this.service.cancelLandProposal(id);
+    }
 }

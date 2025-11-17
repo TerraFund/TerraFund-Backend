@@ -120,5 +120,60 @@ public class LandProposalService {
         return ResponseEntity.ok(proposal);
     }
 
+    public ResponseEntity<?> rejectLandProposal(UUID id) {
+        LandProposal proposal = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Land Proposal not found"));
+
+        User user = currentUser.get();
+
+        if (user.getRole() != RoleEnum.LAND_OWNER) {
+            return ResponseEntity.badRequest().body("Only land owners can reject proposals!");
+        }
+
+        if (!Objects.equals(user.getId(), proposal.getLandOwnerID())) {
+            return ResponseEntity.badRequest().body("You cannot reject a proposal for another land owner!");
+        }
+
+        if (proposal.getStatus() != ProposalStatus.PENDING) {
+            return ResponseEntity.badRequest().body("Proposal is not in pending status!");
+        }
+
+        proposal.setStatus(ProposalStatus.REJECTED);
+        repository.save(proposal);
+
+        User investor = userRepository.findById(proposal.getInvestorID())
+                .orElseThrow(() -> new RuntimeException("Investor not found"));
+
+        emailService.sendEmail(investor.toString(),"Your proposal was rejected!", proposal.toString());
+
+        return ResponseEntity.ok(proposal);
+    }
+
+    public ResponseEntity<?> cancelLandProposal(UUID id) {
+        LandProposal proposal = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Land Proposal not found"));
+
+        User user = currentUser.get();
+
+        if (user.getRole() != RoleEnum.INVESTOR) {
+            return ResponseEntity.badRequest().body("Only investors can cancel proposals!");
+        }
+
+        if (!Objects.equals(user.getId(), proposal.getInvestorID())) {
+            return ResponseEntity.badRequest().body("You cannot cancel someone else's proposal!");
+        }
+
+        if (proposal.getStatus() != ProposalStatus.PENDING) {
+            return ResponseEntity.badRequest().body("Only pending proposals can be cancelled!");
+        }
+
+        proposal.setStatus(ProposalStatus.CANCELED);
+        repository.save(proposal);
+
+        User owner = userRepository.findById(proposal.getLandOwnerID())
+                .orElseThrow(() -> new RuntimeException("Land owner not found"));
+
+        return ResponseEntity.ok(proposal);
+    }
 
 }
