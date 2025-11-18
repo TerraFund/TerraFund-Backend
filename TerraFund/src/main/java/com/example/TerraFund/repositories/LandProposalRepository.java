@@ -1,5 +1,6 @@
 package com.example.TerraFund.repositories;
 
+import com.example.TerraFund.dto.enums.ProposalStatus;
 import com.example.TerraFund.entities.LandProposal;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -9,4 +10,5 @@ import java.util.UUID;
 public interface LandProposalRepository extends JpaRepository <LandProposal, UUID> {
     List<LandProposal> findByInvestorID(Long investorId);
     List<LandProposal> findByLandOwnerID(Long ownerId);
+    List<LandProposal> findByInvestorIDAndStatus(Long investorId, ProposalStatus status);
 }
