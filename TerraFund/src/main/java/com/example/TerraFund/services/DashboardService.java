@@ -14,7 +14,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @AllArgsConstructor
@@ -42,14 +44,27 @@ public class DashboardService {
 
         List<Land> availableLands = landRepository.findAll();
 
-        long totalProposals = acceptedProposals.size() + rejectedProposals.size() + canceledProposals.size() + completedProposals.size();
+        long totalProposals = acceptedProposals.size() + rejectedProposals.size() + canceledProposals.size();
         long totalAcceptedProposals = acceptedProposals.size();
         long totalRejectedProposals = rejectedProposals.size();
         long totalCanceledProposals = canceledProposals.size();
 
         long totalAvailableLands = availableLands.size();
 
+        Map<String, Object> dashboard = new HashMap<>();
+        dashboard.put("acceptedProposals", acceptedProposals);
+        dashboard.put("rejectedProposals", rejectedProposals);
+        dashboard.put("canceledProposals", canceledProposals);
 
+        dashboard.put("availableLands", availableLands);
+
+        dashboard.put("totalProposals", totalProposals);
+        dashboard.put("totalAcceptedProposals", totalAcceptedProposals);
+        dashboard.put("totalRejectedProposals", totalRejectedProposals);
+        dashboard.put("totalCanceledProposals", totalCanceledProposals);
+        dashboard.put("totalAvailableLands", totalAvailableLands);
+
+        return ResponseEntity.ok(dashboard);
     }
 
     @PreAuthorize("hasRole('LAND_OWNER')")
