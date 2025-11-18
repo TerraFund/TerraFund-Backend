@@ -46,7 +46,7 @@ public class DashboardService {
 
         long totalProposals = acceptedProposals.size() + rejectedProposals.size() + canceledProposals.size();
         long totalAcceptedProposals = acceptedProposals.size();
-        long totalRejectedProposals = rejectedProposals.size();
+        long totalRejectedProposals = rejectedProposals.size()
         long totalCanceledProposals = canceledProposals.size();
 
         long totalAvailableLands = availableLands.size();
