@@ -42,7 +42,7 @@ public class DashboardService {
         List<LandProposal> rejectedProposals = proposalRepository.findByInvestorIDAndStatus(user.getId(), ProposalStatus.ACCEPTED);
         List<LandProposal> canceledProposals = proposalRepository.findByInvestorIDAndStatus(user.getId(), ProposalStatus.REJECTED);
 
-        List<Land> availableLands = landRepository.findAll()
+        List<Land> availableLands = landRepository.findAll();
 
         long totalProposals = acceptedProposals.size() + rejectedProposals.size() + canceledProposals.size();
         long totalAcceptedProposals = acceptedProposals.size();
