@@ -45,7 +45,7 @@ public class DashboardService {
         List<Land> availableLands = landRepository.findAll();
 
         long totalProposals = acceptedProposals.size() + rejectedProposals.size() + canceledProposals.size();
-        long totalAcceptedProposals = acceptedProposals.size()
+        long totalAcceptedProposals = acceptedProposals.size();
         long totalRejectedProposals = rejectedProposals.size();
         long totalCanceledProposals = canceledProposals.size();
 
