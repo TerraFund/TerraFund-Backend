@@ -27,7 +27,7 @@ public class DashboardService {
     private LandProposalRepository proposalRepository;
     private LandRepository landRepository;
 
-    @PreAuthorize("hasRole('INVESTOR')")
+
     public ResponseEntity<?> getInvestorDashboard(){
         User user = currentUser.get();
         if(user == null){
