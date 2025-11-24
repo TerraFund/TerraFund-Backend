@@ -18,10 +18,11 @@ public class ChatService {
     public ResponseEntity<?> getChatMessages(Long user1, Long user2) {
 
         if(!currentUser.get().getId().equals(user1) && !currentUser.get().getId().equals(user2)){
-            return ResponseEntity.badRequest().body("You must be logged in as either user1 or user2 to view chat messages!");
+            return ResponseEntity.status(403).body("You are not authorized to view this chat!");
         }
 
         List<Message> messages =  messageRepository.findConversation(user1, user2);
+
         return ResponseEntity.ok(messages);
     }
 }
