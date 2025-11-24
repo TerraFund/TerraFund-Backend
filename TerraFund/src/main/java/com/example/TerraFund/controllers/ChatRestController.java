@@ -1,16 +1,26 @@
 package com.example.TerraFund.controllers;
 
+import com.example.TerraFund.entities.Message;
+import com.example.TerraFund.services.ChatService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/v1/chat")
 public class ChatRestController {
 
-    @GetMapping("/messages")
-    public ResponseEntity<?> getChatMessages(){
-        return ResponseEntity.ok("Chat messages");
+    private final ChatService chatService;
+
+    public ChatRestController(ChatService chatService) {
+        this.chatService = chatService;
     }
+
+    @GetMapping("/messages")
+    public ResponseEntity<?> getChatMessages(@RequestParam Long user1, @RequestParam Long user2){
+        return chatService.getChatMessages(user1, user2);
+    }
+
 }
