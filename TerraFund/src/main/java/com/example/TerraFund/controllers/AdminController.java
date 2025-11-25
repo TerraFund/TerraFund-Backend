@@ -16,7 +16,6 @@ import java.util.List;
 @RequestMapping("/api/admin")
 @Tag(name = "2. Admin Portal", description = "Admin-related endpoints")
 @RequiredArgsConstructor
-@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:5173", "http://localhost:4200"}, allowCredentials = "true")
 public class AdminController {
 
     private final UserRepository userRepository;
@@ -46,4 +45,3 @@ public class AdminController {
         return ResponseEntity.ok(landService.verifyLand(id));
     }
 }
-
