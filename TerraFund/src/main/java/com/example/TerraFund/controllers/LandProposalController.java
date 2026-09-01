@@ -14,14 +14,15 @@ import java.util.UUID;
 
 @RestController
 @Tag(name = "4. Land Proposal", description = "Land Proposal-related endpoints")
-@RequestMapping("/land-proposal")
-@PreAuthorize("hasRole('INVESTOR')")
+@RequestMapping("/api/land-proposal")
+@PreAuthorize("hasAnyRole('INVESTOR', 'LAND_OWNER')")
 @RequiredArgsConstructor
 public class LandProposalController {
 
     private final LandProposalService service;
 
     @Operation(summary = "Create new land proposal", tags = {"4. Land Proposal"})
+    @PreAuthorize("hasRole('INVESTOR')")
     @PostMapping("/create")
     public ResponseEntity<?> createNewLandProposal(@RequestBody LandProposalRequest request) {
         return this.service.createNewLandProposal(request);
@@ -40,17 +41,19 @@ public class LandProposalController {
     }
 
     @Operation(summary = "Accept land proposal", tags = {"4. Land Proposal"})
-    @PatchMapping("/accept/:id")
+    @PatchMapping("/accept/{id}")
     public ResponseEntity<?> acceptLandProposal(@PathVariable UUID id) {
         return this.service.acceptLandProposal(id);
     }
 
-    @PatchMapping("/reject/:id")
+    @Operation(summary = "Reject land proposal", tags = {"4. Land Proposal"})
+    @PatchMapping("/reject/{id}")
     public ResponseEntity<?> rejectLandProposal(@PathVariable UUID id) {
         return this.service.rejectLandProposal(id);
     }
 
-    @PatchMapping("/cancel/:id")
+    @Operation(summary = "Cancel land proposal", tags = {"4. Land Proposal"})
+    @PatchMapping("/cancel/{id}")
     public ResponseEntity<?> cancelLandProposal(@PathVariable UUID id) {
         return this.service.cancelLandProposal(id);
     }

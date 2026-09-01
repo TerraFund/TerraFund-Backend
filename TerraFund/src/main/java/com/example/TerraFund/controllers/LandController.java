@@ -71,7 +71,7 @@ public class LandController {
     }
 
     @Operation(summary = "List published lands", tags = {"3. Land Portal"})
-    @PreAuthorize("hasRole('LAND_OWNER')")
+    @PreAuthorize("hasAnyRole('LAND_OWNER', 'INVESTOR', 'USER', 'ADMIN')")
     @GetMapping("/list")
     public ResponseEntity<List<Land>> list() {
         List<Land> published = landService.listPublished();
@@ -79,7 +79,7 @@ public class LandController {
     }
 
     @Operation(summary = "Get land details", tags = {"3. Land Portal"})
-    @PreAuthorize("hasRole('LAND_OWNER')")
+    @PreAuthorize("hasAnyRole('LAND_OWNER', 'INVESTOR', 'USER', 'ADMIN')")
     @GetMapping("/{id}")
     public ResponseEntity<Land> landDetails(@PathVariable Long id) {
         return landService.findById(id)
