@@ -11,4 +11,5 @@ public interface LandProposalRepository extends JpaRepository <LandProposal, UUI
     List<LandProposal> findByInvestorID(Long investorId);
     List<LandProposal> findByLandOwnerID(Long ownerId);
     List<LandProposal> findByInvestorIDAndStatus(Long investorId, ProposalStatus status);
+    List<LandProposal> findByLandOwnerIDAndStatus(Long ownerId, ProposalStatus status);
 }
