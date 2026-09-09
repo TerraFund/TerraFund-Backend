@@ -8,6 +8,7 @@ import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.security.SecureRandom;
 import java.util.Date;
 import java.util.UUID;
 
@@ -66,7 +67,7 @@ public class JwtService {
     }
 
     public String generateOtp(){
-        return String.valueOf((int)(Math.random() * 900000) + 100000);
+        return String.valueOf(new SecureRandom().nextInt(900000) + 100000);
     }
 
     public String generateResetToken(String email) {
