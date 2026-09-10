@@ -1,5 +1,8 @@
 package com.example.TerraFund.security;
 
+import com.example.TerraFund.entities.User;
+import com.example.TerraFund.repositories.UserRepository;
+import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -20,6 +23,8 @@ import java.util.Collections;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
+    private final UserRepository userRepository;
+    private final TokenRevocationService tokenRevocationService;
 
     @Override
     protected void doFilterInternal(
@@ -27,8 +32,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain
     ) throws ServletException, IOException {
-
-        String path = request.getRequestURI();
 
         final String authHeader = request.getHeader("Authorization");
 
@@ -39,20 +42,34 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         try {
             String jwt = authHeader.substring(7);
-            String userEmail = jwtService.getEmailFromToken(jwt);
+
+            if (!jwtService.validateToken(jwt) || !JwtService.TYPE_ACCESS.equals(jwtService.getTokenType(jwt))) {
+                filterChain.doFilter(request, response);
+                return;
+            }
+
+            if (tokenRevocationService.isRevoked(jwtService.getJti(jwt))) {
+                filterChain.doFilter(request, response);
+                return;
+            }
+
+            Claims claims = jwtService.getClaims(jwt);
+            String userEmail = claims.getSubject();
 
             if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                if (jwtService.validateToken(jwt)) {
-                    String role = jwtService.getRoleFromToken(jwt);
+                // Resolve the user and their CURRENT role from the database instead of
+                // trusting the role embedded in the token. This invalidates stale roles
+                // immediately when an account is deleted or its role is changed.
+                userRepository.findByEmail(userEmail).ifPresent(user -> {
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                            userEmail,
+                            user.getEmail(),
                             null,
-                            role != null ? Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role)) : Collections.emptyList()
+                            Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()))
                     );
 
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
-                }
+                });
             }
         } catch (Exception e) {
             logger.error("JWT validation error: " + e.getMessage());

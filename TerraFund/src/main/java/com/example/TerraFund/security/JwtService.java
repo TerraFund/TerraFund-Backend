@@ -13,14 +13,20 @@ import java.util.UUID;
 
 @Service
 public class JwtService {
+
+    public static final String TYPE_ACCESS = "access";
+    public static final String TYPE_REFRESH = "refresh";
+
     @Value("${application.security.jwt.secret-key}")
     private String secret;
 
     public String generateAccessToken(String email, RoleEnum role, Long id){
         return Jwts.builder()
                 .subject(email)
-                .claim("role", role)
+                .claim("role", role != null ? role.name() : RoleEnum.USER.name())
                 .claim("id", id)
+                .claim("type", TYPE_ACCESS)
+                .id(UUID.randomUUID().toString())
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + 1000 * 60 * 15)) // 15 minutes
                 .signWith(Keys.hmacShaKeyFor(secret.getBytes()))
@@ -31,8 +37,10 @@ public class JwtService {
     public String generateRefreshToken(String email, RoleEnum role, Long id){
         return Jwts.builder()
                 .subject(email)
-                .claim("role", role)
+                .claim("role", role != null ? role.name() : RoleEnum.USER.name())
                 .claim("id", id)
+                .claim("type", TYPE_REFRESH)
+                .id(UUID.randomUUID().toString())
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24 * 7)) // 7 days
                 .signWith(Keys.hmacShaKeyFor(secret.getBytes()))
@@ -63,6 +71,14 @@ public class JwtService {
 
     public String getRoleFromToken(String token){
         return getClaims(token).get("role", String.class);
+    }
+
+    public String getTokenType(String token){
+        return getClaims(token).get("type", String.class);
+    }
+
+    public String getJti(String token){
+        return getClaims(token).getId();
     }
 
     public String generateOtp(){

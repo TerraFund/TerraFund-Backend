@@ -1,6 +1,7 @@
 package com.example.TerraFund.services;
 
 import com.example.TerraFund.Utils.EmailService;
+import com.example.TerraFund.config.CookieProperties;
 import com.example.TerraFund.dto.enums.RoleEnum;
 import com.example.TerraFund.dto.requests.*;
 import com.example.TerraFund.dto.responses.InvestorProfileResponse;
@@ -12,19 +13,22 @@ import com.example.TerraFund.entities.User;
 import com.example.TerraFund.repositories.InvestorProfileRepository;
 import com.example.TerraFund.repositories.LandOwnerProfileRepository;
 import com.example.TerraFund.repositories.UserRepository;
+import com.example.TerraFund.security.CurrentUser;
 import com.example.TerraFund.security.JwtService;
-import jakarta.servlet.http.Cookie;
+import com.example.TerraFund.security.TokenRevocationService;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.AllArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
-import com.example.TerraFund.security.CurrentUser;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Objects;
 
@@ -39,6 +43,27 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private CurrentUser currentUser;
     private EmailService emailService;
+    private final TokenRevocationService tokenRevocationService;
+    private final CookieProperties cookieProperties;
+
+    private ResponseCookie buildRefreshCookie(String token, long maxAgeSeconds) {
+        return ResponseCookie.from("refreshToken", token)
+                .httpOnly(true)
+                .secure(cookieProperties.isSecure())
+                .sameSite("Lax")
+                .path("/")
+                .maxAge(Duration.ofSeconds(maxAgeSeconds))
+                .build();
+    }
+
+    private void attachRefreshCookie(HttpServletResponse response, String refreshToken, long maxAgeSeconds) {
+        response.addHeader(HttpHeaders.SET_COOKIE, buildRefreshCookie(refreshToken, maxAgeSeconds).toString());
+    }
+
+    private void recordTokens(User user, String accessToken, String refreshToken) {
+        tokenRevocationService.recordIssued(user.getEmail(), jwtService.getJti(accessToken));
+        tokenRevocationService.recordIssued(user.getEmail(), jwtService.getJti(refreshToken));
+    }
 
     public ResponseEntity<?> register(RegisterRequest registerRequest, HttpServletResponse response){
         if(userRepository.existsByEmail(registerRequest.getEmail())){
@@ -67,26 +92,13 @@ public class AuthService {
 
             String accessToken = jwtService.generateAccessToken(registerRequest.getEmail(), user.getRole(), user.getId());
             String refreshToken = jwtService.generateRefreshToken(registerRequest.getEmail(), user.getRole(), user.getId());
+            recordTokens(user, accessToken, refreshToken);
 
-            Cookie cookie = new Cookie("refreshToken", refreshToken);
-            cookie.setHttpOnly(true);
-            cookie.setPath("/");
-            cookie.setMaxAge(7 * 24 * 60 * 60); // 7 days in seconds
-            cookie.setSecure(false); // Set to true in production with HTTPS
-
-            response.addCookie(cookie);
-            response.addHeader("Set-Cookie",
-                    String.format("refreshToken=%s; Path=/; HttpOnly; Max-Age=%d; SameSite=Lax",
-                            refreshToken, 7 * 24 * 60 * 60));
+            attachRefreshCookie(response, refreshToken, 7 * 24 * 60 * 60);
 
             //emailService.sendEmail(user.getEmail(), "Verify your account", "Your OTP is: " + otp);
 
-            return ResponseEntity.ok(
-                    new RegisterResponse(
-                            accessToken,
-                            otp
-                    )
-            );
+            return ResponseEntity.ok(new RegisterResponse(accessToken));
         }catch (Exception e){
             return ResponseEntity.badRequest().body(e.getMessage());
         }
@@ -116,36 +128,39 @@ public class AuthService {
 
         String accessToken = jwtService.generateAccessToken(request.getEmail(), user.getRole(), user.getId());
         String refreshToken = jwtService.generateRefreshToken(request.getEmail(), user.getRole(), user.getId());
+        recordTokens(user, accessToken, refreshToken);
 
-        Cookie cookie = new Cookie("refreshToken", refreshToken);
-        cookie.setHttpOnly(true);
-        cookie.setPath("/");
-        cookie.setMaxAge(7 * 24 * 60 * 60); // 7 days in seconds
-        cookie.setSecure(false); // Set to true in production with HTTPS
-
-        response.addCookie(cookie);
-        response.addHeader("Set-Cookie",
-                String.format("refreshToken=%s; Path=/; HttpOnly; Max-Age=%d; SameSite=Lax",
-                        refreshToken, 7 * 24 * 60 * 60));
+        attachRefreshCookie(response, refreshToken, 7 * 24 * 60 * 60);
 
         return ResponseEntity.ok(accessToken);
     }
 
-    public ResponseEntity<?> refresh(String refreshToken){
+    public ResponseEntity<?> refresh(String refreshToken, HttpServletResponse response){
         if(refreshToken == null || refreshToken.isEmpty()){
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Refresh token not found!");
         }
 
         try {
-            if(!jwtService.validateToken(refreshToken)){
+            if(!jwtService.validateToken(refreshToken) || !JwtService.TYPE_REFRESH.equals(jwtService.getTokenType(refreshToken))){
                 throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid refresh token!");
+            }
+
+            if(tokenRevocationService.isRevoked(jwtService.getJti(refreshToken))){
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Refresh token has been revoked!");
             }
 
             String email = jwtService.getEmailFromToken(refreshToken);
             User user = userRepository.findByEmail(email)
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
+            // Rotate: the presented refresh token can be used only once.
+            tokenRevocationService.revoke(jwtService.getJti(refreshToken));
+
             String accessToken = jwtService.generateAccessToken(user.getEmail(), user.getRole(), user.getId());
+            String newRefreshToken = jwtService.generateRefreshToken(user.getEmail(), user.getRole(), user.getId());
+            recordTokens(user, accessToken, newRefreshToken);
+
+            attachRefreshCookie(response, newRefreshToken, 7 * 24 * 60 * 60);
 
             return ResponseEntity.ok(accessToken);
         } catch (Exception e) {
@@ -154,13 +169,9 @@ public class AuthService {
     }
 
     public ResponseEntity<?> logout(HttpServletResponse response){
-        var cookie = new Cookie("refreshToken", null);
-        cookie.setHttpOnly(true);
-        cookie.setPath("/");
-        cookie.setMaxAge(0);
-        cookie.setSecure(false);
-        response.addCookie(cookie);
-
+        User user = currentUser.get();
+        tokenRevocationService.revokeAllForUser(user.getEmail());
+        attachRefreshCookie(response, "", 0);
         return ResponseEntity.ok("Logout successful!");
     }
 
