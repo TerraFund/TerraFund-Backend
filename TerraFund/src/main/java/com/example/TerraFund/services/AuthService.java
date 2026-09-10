@@ -251,6 +251,11 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You cannot change your role;");
         }
 
+        if(request == null || request.getRole() == null
+                || (request.getRole() != RoleEnum.INVESTOR && request.getRole() != RoleEnum.LAND_OWNER)){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid role selection. Only INVESTOR or LAND_OWNER can be chosen.");
+        }
+
         user.setRole(request.getRole());
         userRepository.save(user);
 
