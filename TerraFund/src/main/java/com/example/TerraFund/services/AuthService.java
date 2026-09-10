@@ -62,6 +62,8 @@ public class AuthService {
             user.setPhoneNumber(registerRequest.getPhoneNumber());
             user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
             user.setOtp(otp);
+            user.setOtpExpiry(LocalDateTime.now().plusMinutes(10));
+            user.setOtpAttempts(0);
 
             userRepository.save(user);
 
@@ -95,10 +97,29 @@ public class AuthService {
     public ResponseEntity<?> verify(VerifyRequest verifyRequest, HttpServletResponse response){
         User user = currentUser.get();
 
+        if (user.getOtpVerified() != null && user.getOtpVerified()) {
+            return ResponseEntity.ok("Account already verified!");
+        }
+
+        if (user.getOtp() == null || user.getOtpExpiry() == null
+                || user.getOtpExpiry().isBefore(LocalDateTime.now())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "OTP has expired. Please request a new one.");
+        }
+
+        int attempts = user.getOtpAttempts() == null ? 0 : user.getOtpAttempts();
+        if (attempts >= 5) {
+            throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, "Too many incorrect attempts. Please request a new OTP.");
+        }
+
         if(!Objects.equals(user.getOtp(), verifyRequest.getOtp())){
+            user.setOtpAttempts(attempts + 1);
+            userRepository.save(user);
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid OTP!");
         }
+
         user.setOtp(null);
+        user.setOtpExpiry(null);
+        user.setOtpAttempts(0);
         user.setOtpVerified(true);
         userRepository.save(user);
         return ResponseEntity.ok("OTP verified successfully!");
