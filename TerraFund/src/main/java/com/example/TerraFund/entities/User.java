@@ -33,6 +33,12 @@ public class User {
     private Boolean otpVerified = false;
 
     @Column(nullable = true)
+    private LocalDateTime otpExpiry;
+
+    @Column(nullable = true)
+    private Integer otpAttempts = 0;
+
+    @Column(nullable = true)
     private String resetToken;
 
     @Column(nullable = true)
