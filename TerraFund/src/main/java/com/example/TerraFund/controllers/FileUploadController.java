@@ -1,6 +1,7 @@
 package com.example.TerraFund.controllers;
 
 import com.example.TerraFund.services.FileUploadService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -13,6 +14,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/files")
 public class FileUploadController {
@@ -25,8 +27,10 @@ public class FileUploadController {
         try {
             String filename = fileUploadService.saveFile(file);
             return ResponseEntity.ok("File uploaded successfully: " + filename);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error("Failed to save uploaded file", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to upload file");
         }
     }
@@ -35,7 +39,7 @@ public class FileUploadController {
     public ResponseEntity<byte[]> downloadFile(@PathVariable String filename) {
         try {
             File file = fileUploadService.getFile(filename);
-            if (!file.exists()) {
+            if (file == null || !file.exists()) {
                 return ResponseEntity.notFound().build();
             }
 
@@ -45,8 +49,10 @@ public class FileUploadController {
             headers.setContentDispositionFormData("attachment", file.getName());
 
             return new ResponseEntity<>(content, headers, HttpStatus.OK);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error("Failed to read file for download", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
