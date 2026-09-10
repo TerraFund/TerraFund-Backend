@@ -41,8 +41,8 @@ public class AuthController {
 
     @Operation(summary = "Refresh token", tags = {"1. Authentication"}, operationId = "04")
     @PostMapping("/refresh")
-    public ResponseEntity<?> refresh(@CookieValue(name = "refreshToken", required = false) String refreshToken) {
-        return authService.refresh(refreshToken);
+    public ResponseEntity<?> refresh(@CookieValue(name = "refreshToken", required = false) String refreshToken, HttpServletResponse response) {
+        return authService.refresh(refreshToken, response);
     }
 
     @Operation(summary = "Logout user", tags = {"1. Authentication"}, operationId = "05")

@@ -11,5 +11,4 @@ import lombok.Setter;
 @AllArgsConstructor
 public class RegisterResponse {
     private String accessToken;
-    private String opt;
 }
