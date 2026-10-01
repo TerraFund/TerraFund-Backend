@@ -46,15 +46,17 @@ public class LandProposalService {
 
         LandProposal proposal = new LandProposal();
 
-         proposal.setInvestorID(user.getId());
-         proposal.setLandOwnerID(owner.getId());
-         proposal.setLandID(request.getLandID());
-         proposal.setTitle(request.getTitle());
-         proposal.setDescription(request.getDescription());
-         proposal.setPurpose(request.getPurpose());
-         proposal.setDurationInMonths(request.getDurationInMonths());
-         proposal.setStatus(request.getStatus());
-         proposal.setAttachments(request.getAttachments());
+        proposal.setInvestorID(user.getId());
+        proposal.setLandOwnerID(owner.getId());
+        proposal.setLandID(request.getLandID());
+        proposal.setTitle(request.getTitle());
+        proposal.setDescription(request.getDescription());
+        proposal.setPurpose(request.getPurpose());
+        proposal.setDurationInMonths(request.getDurationInMonths());
+        // SECURITY: status is server-controlled; previously a client could create
+        // a proposal already marked ACCEPTED.
+        proposal.setStatus(ProposalStatus.PENDING);
+        proposal.setAttachments(request.getAttachments());
 
          repository.save(proposal);
          return ResponseEntity.ok(proposal);
@@ -114,7 +116,8 @@ public class LandProposalService {
         User investor = userRepository.findById(proposal.getInvestorID())
                 .orElseThrow(() -> new RuntimeException("Investor not found"));
 
-        emailService.sendEmail(investor.toString(),"Your proposal was accepted!", proposal.toString());
+        // BUG FIX: recipient was investor.toString(), which is not an email address
+        emailService.sendEmail(investor.getEmail(),"Your proposal was accepted!", proposal.toString());
         proposal.setStatus(ProposalStatus.ACCEPTED);
         repository.save(proposal);
         return ResponseEntity.ok(proposal);
@@ -144,7 +147,7 @@ public class LandProposalService {
         User investor = userRepository.findById(proposal.getInvestorID())
                 .orElseThrow(() -> new RuntimeException("Investor not found"));
 
-        emailService.sendEmail(investor.toString(),"Your proposal was rejected!", proposal.toString());
+        emailService.sendEmail(investor.getEmail(),"Your proposal was rejected!", proposal.toString());
 
         return ResponseEntity.ok(proposal);
     }

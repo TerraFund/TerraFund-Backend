@@ -2,6 +2,7 @@ package com.example.TerraFund.controllers;
 
 import com.example.TerraFund.dto.requests.CreateLandRequest;
 import com.example.TerraFund.entities.Land;
+import com.example.TerraFund.security.CurrentUser;
 import com.example.TerraFund.services.LandService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -17,10 +18,10 @@ import java.util.List;
 @RestController
 @Tag(name = "3. Land Portal", description = "Land-related endpoints")
 @RequestMapping("/api/land")
-@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:5173", "http://localhost:4200"}, allowCredentials = "true")
 public class LandController {
 
     private final LandService landService;
+    private final CurrentUser currentUser;
 
     @Operation(summary = "Create land", tags = {"3. Land Portal"})
     @PreAuthorize("hasRole('LAND_OWNER')")
@@ -37,10 +38,15 @@ public class LandController {
         return ResponseEntity.ok("Document uploaded successfully for land ID " + landId);
     }
 
+    /**
+     * SECURITY: ownership enforced - a land owner can only list their own lands
+     * (previously any owner ID could be passed in the path, IDOR).
+     */
     @Operation(summary = "Get my lands", tags = {"3. Land Portal"})
     @PreAuthorize("hasRole('LAND_OWNER')")
     @GetMapping("/my-lands/{ownerId}")
     public ResponseEntity<List<Land>> myLands(@PathVariable Long ownerId) {
+        requireSelf(ownerId);
         List<Land> lands = landService.findByOwner(ownerId);
         return ResponseEntity.ok(lands);
     }
@@ -48,9 +54,8 @@ public class LandController {
     @Operation(summary = "Update land", tags = {"3. Land Portal"})
     @PreAuthorize("hasRole('LAND_OWNER')")
     @PatchMapping("/update/{id}")
-    public ResponseEntity<Land> update(@PathVariable Long id, @RequestBody Land updatedLand) {
-        updatedLand.setId(id);
-        Land saved = landService.update(updatedLand);
+    public ResponseEntity<Land> update(@PathVariable Long id, @RequestBody CreateLandRequest updatedLand) {
+        Land saved = landService.update(id, updatedLand);
         return ResponseEntity.ok(saved);
     }
 
@@ -66,7 +71,7 @@ public class LandController {
     @PreAuthorize("hasRole('LAND_OWNER')")
     @PatchMapping("/publish/{id}")
     public ResponseEntity<String> publish(@PathVariable Long id) {
-        
+
         return ResponseEntity.ok("Land published successfully (ID: " + id + ")");
     }
 
@@ -87,11 +92,23 @@ public class LandController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    /**
+     * SECURITY: ownership enforced (previously IDOR - any owner's lands could be read).
+     */
     @Operation(summary = "Get lands by owner", tags = {"3. Land Portal"})
     @PreAuthorize("hasRole('LAND_OWNER')")
     @GetMapping("/owner/{ownerId}")
     public ResponseEntity<List<Land>> landsByOwner(@PathVariable Long ownerId) {
+        requireSelf(ownerId);
         List<Land> lands = landService.findByOwner(ownerId);
         return ResponseEntity.ok(lands);
+    }
+
+    private void requireSelf(Long ownerId) {
+        Long currentUserId = currentUser.get().getId();
+        if (!currentUserId.equals(ownerId)) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.FORBIDDEN, "You can only access your own lands");
+        }
     }
 }

@@ -5,7 +5,6 @@ import com.example.TerraFund.services.LandProposalService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -29,30 +28,35 @@ public class LandProposalController {
     }
 
     @Operation(summary = "Get all my land proposals", tags = {"4. Land Proposal"})
+    @PreAuthorize("hasRole('INVESTOR')")
     @GetMapping("/my-proposals")
     public ResponseEntity<?> getAllMyLandProposals() {
         return this.service.getMyProposals();
     }
 
     @Operation(summary = "Get all my received land proposals", tags = {"4. Land Proposal"})
+    @PreAuthorize("hasRole('LAND_OWNER')")
     @GetMapping("/my-received-proposals")
     public ResponseEntity<?> getAllMyReceivedLandProposals() {
         return this.service.getMyReceivedProposals();
     }
 
     @Operation(summary = "Accept land proposal", tags = {"4. Land Proposal"})
+    @PreAuthorize("hasRole('LAND_OWNER')")
     @PatchMapping("/accept/{id}")
     public ResponseEntity<?> acceptLandProposal(@PathVariable UUID id) {
         return this.service.acceptLandProposal(id);
     }
 
     @Operation(summary = "Reject land proposal", tags = {"4. Land Proposal"})
+    @PreAuthorize("hasRole('LAND_OWNER')")
     @PatchMapping("/reject/{id}")
     public ResponseEntity<?> rejectLandProposal(@PathVariable UUID id) {
         return this.service.rejectLandProposal(id);
     }
 
     @Operation(summary = "Cancel land proposal", tags = {"4. Land Proposal"})
+    @PreAuthorize("hasRole('INVESTOR')")
     @PatchMapping("/cancel/{id}")
     public ResponseEntity<?> cancelLandProposal(@PathVariable UUID id) {
         return this.service.cancelLandProposal(id);

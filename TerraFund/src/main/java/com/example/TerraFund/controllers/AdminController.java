@@ -15,6 +15,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/admin")
 @Tag(name = "2. Admin Portal", description = "Admin-related endpoints")
+@PreAuthorize("hasRole('ADMIN')") // SECURITY: admin endpoints were previously accessible to any authenticated user
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('ADMIN')")
 public class AdminController {

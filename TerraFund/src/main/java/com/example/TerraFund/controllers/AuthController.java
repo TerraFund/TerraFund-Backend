@@ -6,6 +6,7 @@ import com.example.TerraFund.services.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
@@ -23,7 +24,7 @@ public class AuthController {
 
     @Operation(summary = "Signup user", tags = {"1. Authentication"}, operationId = "01")
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody RegisterRequest registerRequest, HttpServletResponse response) {
+    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest registerRequest, HttpServletResponse response) {
         return authService.register(registerRequest, response);
     }
 
@@ -59,7 +60,7 @@ public class AuthController {
 
     @Operation(summary = "Reset password", tags = {"1. Authentication"}, operationId = "07")
     @PostMapping("/reset-password")
-    public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequest request) {
+    public ResponseEntity<?> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
         return authService.resetPassword(request);
     }
 

@@ -26,8 +26,9 @@ public class FileUploadController {
             String filename = fileUploadService.saveFile(file);
             return ResponseEntity.ok("File uploaded successfully: " + filename);
         } catch (IOException e) {
-            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to upload file");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 
@@ -45,8 +46,9 @@ public class FileUploadController {
             headers.setContentDispositionFormData("attachment", file.getName());
 
             return new ResponseEntity<>(content, headers, HttpStatus.OK);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
         } catch (IOException e) {
-            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }

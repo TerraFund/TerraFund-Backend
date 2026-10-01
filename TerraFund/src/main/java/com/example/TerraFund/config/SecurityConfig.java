@@ -74,7 +74,9 @@ public class SecurityConfig{
                 .sessionManagement(c -> c.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(c ->
-                        c.requestMatchers("/api/auth/**", "/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html", "/actuator/**").permitAll()
+                        c.requestMatchers("/api/auth/**", "/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
+                                .requestMatchers("/actuator/health").permitAll() // only health is public
+                                .requestMatchers("/api/admin/**").hasRole("ADMIN") // defense in depth; also enforced by @PreAuthorize
                                 .requestMatchers("/ws/**").permitAll()
                                 .anyRequest().authenticated()
                 )

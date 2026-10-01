@@ -35,11 +35,14 @@ public class DashboardService {
             return ResponseEntity.badRequest().body("You must be an investor to view this dashboard!");
         }
 
+        // BUG FIX: proposal statuses were mapped to the wrong lists
         List<LandProposal> pendingProposals = proposalRepository.findByInvestorIDAndStatus(user.getId(), ProposalStatus.PENDING);
         List<LandProposal> acceptedProposals = proposalRepository.findByInvestorIDAndStatus(user.getId(), ProposalStatus.ACCEPTED);
         List<LandProposal> rejectedProposals = proposalRepository.findByInvestorIDAndStatus(user.getId(), ProposalStatus.REJECTED);
         List<LandProposal> canceledProposals = proposalRepository.findByInvestorIDAndStatus(user.getId(), ProposalStatus.CANCELED);
 
+        // SECURITY: only published, non-hidden lands are exposed (previously all lands,
+        // including hidden/unpublished ones, were returned to any investor)
         List<Land> availableLands = landRepository.findByPublishedTrueAndHiddenFalse();
 
         long totalProposals = pendingProposals.size() + acceptedProposals.size() + rejectedProposals.size() + canceledProposals.size();

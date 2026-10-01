@@ -12,10 +12,11 @@ import com.example.TerraFund.entities.User;
 import com.example.TerraFund.repositories.InvestorProfileRepository;
 import com.example.TerraFund.repositories.LandOwnerProfileRepository;
 import com.example.TerraFund.repositories.UserRepository;
+import com.example.TerraFund.security.CurrentUser;
 import com.example.TerraFund.security.JwtService;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -23,30 +24,52 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
-import com.example.TerraFund.security.CurrentUser;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
 
-@AllArgsConstructor
 @Service
+@RequiredArgsConstructor
 public class AuthService {
     private final InvestorProfileRepository investorProfileRepository;
     private final LandOwnerProfileRepository landOwnerProfileRepository;
-    private UserRepository userRepository;
-    private JwtService jwtService;
+    private final UserRepository userRepository;
+    private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
     private final PasswordEncoder passwordEncoder;
-    private CurrentUser currentUser;
-    private EmailService emailService;
+    private final CurrentUser currentUser;
+    private final EmailService emailService;
+
+    // SECURITY: set to true in production so the refresh cookie is never sent over plain HTTP.
+    @Value("${application.security.cookie-secure:false}")
+    private boolean cookieSecure;
+
+    private static final String REFRESH_COOKIE = "refreshToken";
+    private static final int REFRESH_COOKIE_MAX_AGE = 7 * 24 * 60 * 60; // 7 days
+
+    /**
+     * SECURITY: single Set-Cookie header (previously the cookie was set twice,
+     * once without SameSite), HttpOnly + SameSite=Lax always, Secure configurable.
+     */
+    private void setRefreshCookie(HttpServletResponse response, String token) {
+        response.addHeader("Set-Cookie",
+                String.format("%s=%s; Path=/; HttpOnly; Max-Age=%d; SameSite=Lax%s",
+                        REFRESH_COOKIE, token, REFRESH_COOKIE_MAX_AGE, cookieSecure ? "; Secure" : ""));
+    }
+
+    private void clearRefreshCookie(HttpServletResponse response) {
+        response.addHeader("Set-Cookie",
+                String.format("%s=; Path=/; HttpOnly; Max-Age=0; SameSite=Lax%s",
+                        REFRESH_COOKIE, cookieSecure ? "; Secure" : ""));
+    }
 
     public ResponseEntity<?> register(RegisterRequest registerRequest, HttpServletResponse response){
         if(userRepository.existsByEmail(registerRequest.getEmail())){
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email already exists!");
         }
 
-        if(registerRequest.getPassword().length() < 6){
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password must be at least 6 characters long!");
+        if(registerRequest.getPassword().length() < 8){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password must be at least 8 characters long!");
         }
 
         if(!registerRequest.getPassword().equals(registerRequest.getConfirmPassword())){
@@ -68,19 +91,13 @@ public class AuthService {
             String accessToken = jwtService.generateAccessToken(registerRequest.getEmail(), user.getRole(), user.getId());
             String refreshToken = jwtService.generateRefreshToken(registerRequest.getEmail(), user.getRole(), user.getId());
 
-            Cookie cookie = new Cookie("refreshToken", refreshToken);
-            cookie.setHttpOnly(true);
-            cookie.setPath("/");
-            cookie.setMaxAge(7 * 24 * 60 * 60); // 7 days in seconds
-            cookie.setSecure(false); // Set to true in production with HTTPS
-
-            response.addCookie(cookie);
-            response.addHeader("Set-Cookie",
-                    String.format("refreshToken=%s; Path=/; HttpOnly; Max-Age=%d; SameSite=Lax",
-                            refreshToken, 7 * 24 * 60 * 60));
+            setRefreshCookie(response, refreshToken);
 
             //emailService.sendEmail(user.getEmail(), "Verify your account", "Your OTP is: " + otp);
 
+            // TODO SECURITY: stop returning the OTP in the response once email
+            //  delivery is enabled - it currently lets anyone "verify" themselves
+            //  without access to the email inbox.
             return ResponseEntity.ok(
                     new RegisterResponse(
                             accessToken,
@@ -95,7 +112,8 @@ public class AuthService {
     public ResponseEntity<?> verify(VerifyRequest verifyRequest, HttpServletResponse response){
         User user = currentUser.get();
 
-        if(!Objects.equals(user.getOtp(), verifyRequest.getOtp())){
+        if(user.getOtp() == null || verifyRequest.getOtp() == null
+                || !user.getOtp().equals(verifyRequest.getOtp())){
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid OTP!");
         }
         user.setOtp(null);
@@ -117,16 +135,7 @@ public class AuthService {
         String accessToken = jwtService.generateAccessToken(request.getEmail(), user.getRole(), user.getId());
         String refreshToken = jwtService.generateRefreshToken(request.getEmail(), user.getRole(), user.getId());
 
-        Cookie cookie = new Cookie("refreshToken", refreshToken);
-        cookie.setHttpOnly(true);
-        cookie.setPath("/");
-        cookie.setMaxAge(7 * 24 * 60 * 60); // 7 days in seconds
-        cookie.setSecure(false); // Set to true in production with HTTPS
-
-        response.addCookie(cookie);
-        response.addHeader("Set-Cookie",
-                String.format("refreshToken=%s; Path=/; HttpOnly; Max-Age=%d; SameSite=Lax",
-                        refreshToken, 7 * 24 * 60 * 60));
+        setRefreshCookie(response, refreshToken);
 
         return ResponseEntity.ok(accessToken);
     }
@@ -154,43 +163,45 @@ public class AuthService {
     }
 
     public ResponseEntity<?> logout(HttpServletResponse response){
-        var cookie = new Cookie("refreshToken", null);
-        cookie.setHttpOnly(true);
-        cookie.setPath("/");
-        cookie.setMaxAge(0);
-        cookie.setSecure(false);
-        response.addCookie(cookie);
-
+        clearRefreshCookie(response);
         return ResponseEntity.ok("Logout successful!");
     }
 
+    /**
+     * SECURITY: the response is identical whether or not the email exists, to
+     * prevent user enumeration (previously threw a 500 "Email does not exist!").
+     */
     public ResponseEntity<?> forgotPassword(ForgotPasswordRequest request) {
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("Email does not exist!"));
-        String resetToken = jwtService.generateResetToken(request.getEmail());
+        userRepository.findByEmail(request.getEmail()).ifPresent(user -> {
+            String resetToken = jwtService.generateResetToken(request.getEmail());
 
-        user.setResetToken(resetToken);
-        user.setResetTokenExpiry(LocalDateTime.now().plusMinutes(15));
-        userRepository.save(user);
+            user.setResetToken(resetToken);
+            user.setResetTokenExpiry(LocalDateTime.now().plusMinutes(15));
+            userRepository.save(user);
 
-        //Frontend link to reset password
-        String resetLink = "http://localhost:3000/reset-password?token=" + resetToken;
+            // Frontend link to reset password
+            String resetLink = "http://localhost:3000/reset-password?token=" + resetToken;
 
-        emailService.sendEmail(
-                user.getEmail(),
-                "Password Reset",
-                "Click this link to reset your password: " + resetLink
-        );
+            emailService.sendEmail(
+                    user.getEmail(),
+                    "Password Reset",
+                    "Click this link to reset your password: " + resetLink
+            );
+        });
 
         return ResponseEntity.ok("Password reset link sent to email if it exists.");
     }
 
     public ResponseEntity<?> resetPassword(ResetPasswordRequest request) {
         User user = userRepository.findByResetToken(request.getToken())
-                .orElseThrow(() -> new RuntimeException("Invalid or expired token"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid or expired token"));
 
         if (user.getResetTokenExpiry() == null || user.getResetTokenExpiry().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("Reset token has expired");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid or expired token");
+        }
+
+        if (request.getNewPassword() == null || request.getNewPassword().length() < 8) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password must be at least 8 characters long!");
         }
 
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
@@ -244,11 +255,19 @@ public class AuthService {
         }
     }
 
+    /**
+     * SECURITY: only INVESTOR and LAND_OWNER roles can be chosen. Previously any
+     * client could send {"role": "ADMIN"} here and escalate to full admin.
+     */
     public ResponseEntity<?> chooseRole(ChooseRoleRequest request){
         User user = currentUser.get();
 
         if(user.getRole() == RoleEnum.INVESTOR || user.getRole() == RoleEnum.LAND_OWNER){
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You cannot change your role;");
+        }
+
+        if(request.getRole() != RoleEnum.INVESTOR && request.getRole() != RoleEnum.LAND_OWNER){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You can only choose the INVESTOR or LAND_OWNER role!");
         }
 
         user.setRole(request.getRole());
@@ -331,17 +350,21 @@ public class AuthService {
         );
     }
 
+    /**
+     * SECURITY/BUG FIX: the previous implementation created a brand-new empty
+     * profile, dereferenced its null user (guaranteed NullPointerException /
+     * HTTP 500) and never persisted anything. It now loads the caller's own
+     * profile and updates it.
+     */
     public ResponseEntity<?> updateInvestorProfile(InvestorProfileRequest request){
         User user = currentUser.get();
-        InvestorProfile profile = new InvestorProfile();
 
         if(user.getRole() != RoleEnum.INVESTOR){
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You must be an investor to update a profile!");
         }
 
-        if(!Objects.equals(user.getId(), profile.getUser().getId())){
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You cannot update another investor's profile!");
-        }
+        InvestorProfile profile = investorProfileRepository.findByUserEmail(user.getEmail())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Investor profile not found"));
 
         profile.setFirstName(request.getFirstName());
         profile.setLastName(request.getLastName());
@@ -352,6 +375,8 @@ public class AuthService {
         profile.setOccupation(request.getOccupation());
         profile.setMinInvestmentBudget(request.getMinInvestmentBudget());
         profile.setMaxInvestmentBudget(request.getMaxInvestmentBudget());
+
+        investorProfileRepository.save(profile);
 
         return ResponseEntity.ok(
                 new InvestorProfileResponse(
@@ -370,31 +395,31 @@ public class AuthService {
         );
     }
 
+    /** Same fix as updateInvestorProfile: load the caller's profile and persist. */
     public ResponseEntity<?> updateLandOwnerProfile(LandOwnerProfileRequest request){
         User user = currentUser.get();
-        LandOwnerProfile profile = new LandOwnerProfile();
 
         if(user.getRole() != RoleEnum.LAND_OWNER){
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You must be a land owner to update a profile!");
         }
 
-        if(!Objects.equals(user.getId(), profile.getUser().getId())){
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You cannot update another land owner's profile!");
-        }
+        LandOwnerProfile profile = landOwnerProfileRepository.findByUserEmail(user.getEmail())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Land owner profile not found"));
 
         profile.setFirstName(request.getFirstName());
         profile.setLastName(request.getLastName());
         profile.setAddress(request.getAddress());
         profile.setProfilePictureUrl(request.getProfilePictureUrl());
         profile.setNationalIdNumber(request.getNationalIdNumber());
-        profile.setPhoneNumber(user.getPhoneNumber());
+
+        landOwnerProfileRepository.save(profile);
 
         return ResponseEntity.ok(
                 new LandOwnerProfileResponse(
                         profile.getId(),
                         profile.getFirstName(),
-                        profile.getAddress(),
                         profile.getLastName(),
+                        profile.getAddress(),
                         profile.getPhoneNumber(),
                         profile.getProfilePictureUrl(),
                         profile.getNationalIdNumber()

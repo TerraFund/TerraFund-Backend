@@ -9,7 +9,9 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class EmailService {
 
-    private JavaMailSender mailSender;
+    // BUG FIX: must be final so @RequiredArgsConstructor injects it
+    // (previously it stayed null and every email send threw a NullPointerException)
+    private final JavaMailSender mailSender;
 
     public void sendEmail(String to, String subject, String body) {
         SimpleMailMessage message = new SimpleMailMessage();
