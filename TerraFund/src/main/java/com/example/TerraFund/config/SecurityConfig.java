@@ -62,8 +62,9 @@ public class SecurityConfig{
                 "CORS_ALLOWED_ORIGINS",
                 "http://localhost:3000,http://localhost:5173,http://localhost:4200");
         configuration.setAllowedOrigins(Arrays.asList(allowedOrigins.split(",")));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
+        configuration.setExposedHeaders(Arrays.asList("Authorization", "Set-Cookie"));
         configuration.setAllowCredentials(true); // Important for cookies
         
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
@@ -79,8 +80,10 @@ public class SecurityConfig{
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(c ->
                         c.requestMatchers("/api/auth/**", "/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
-                                .requestMatchers("/actuator/health").permitAll() // only health is public
-                                .requestMatchers("/api/admin/**").hasRole("ADMIN") // defense in depth; also enforced by @PreAuthorize
+                                .requestMatchers("/actuator/health").permitAll()
+                                .requestMatchers("/api/files/download/**").permitAll()
+                                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/land/list", "/api/land/*").permitAll()
+                                .requestMatchers("/api/admin/**").hasRole("ADMIN")
                                 .requestMatchers("/ws/**").permitAll()
                                 .anyRequest().authenticated()
                 )

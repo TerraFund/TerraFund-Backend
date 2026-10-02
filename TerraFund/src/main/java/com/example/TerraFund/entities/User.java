@@ -46,6 +46,7 @@ public class User {
     @Column(nullable = false)
     private RoleEnum role = RoleEnum.USER;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "owner")
     private List<Land> lands;
 }

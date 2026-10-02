@@ -14,6 +14,7 @@ import java.util.List;
 public class ChatService {
     private final MessageRepository messageRepository;
     private final CurrentUser currentUser;
+    private final com.example.TerraFund.repositories.UserRepository userRepository;
 
     public ResponseEntity<?> getChatMessages(Long user1, Long user2) {
 
@@ -24,5 +25,25 @@ public class ChatService {
         List<Message> messages =  messageRepository.findConversation(user1, user2);
 
         return ResponseEntity.ok(messages);
+    }
+
+    public ResponseEntity<?> sendMessage(Long receiverId, String messageText) {
+        com.example.TerraFund.entities.User sender = currentUser.get();
+        if (sender == null) {
+            return ResponseEntity.badRequest().body("You must be logged in to send a message!");
+        }
+        com.example.TerraFund.entities.User receiver = userRepository.findById(receiverId).orElse(null);
+        if (receiver == null) {
+            return ResponseEntity.badRequest().body("Receiver not found");
+        }
+
+        Message messageEntity = new Message();
+        messageEntity.setMessage(messageText != null ? messageText : "");
+        messageEntity.setSenderId(sender.getId());
+        messageEntity.setReceiverId(receiver.getId());
+        messageEntity.setTimestamp(java.time.LocalDateTime.now().toString());
+
+        messageRepository.save(messageEntity);
+        return ResponseEntity.ok(messageEntity);
     }
 }

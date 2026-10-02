@@ -14,11 +14,17 @@ import java.util.UUID;
 @RestController
 @Tag(name = "4. Land Proposal", description = "Land Proposal-related endpoints")
 @RequestMapping("/api/land-proposal")
-@PreAuthorize("hasAnyRole('INVESTOR', 'LAND_OWNER')")
+@PreAuthorize("hasAnyRole('INVESTOR', 'LAND_OWNER', 'ADMIN')")
 @RequiredArgsConstructor
 public class LandProposalController {
 
     private final LandProposalService service;
+
+    @Operation(summary = "Get land proposal by id", tags = {"4. Land Proposal"})
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getLandProposalById(@PathVariable UUID id) {
+        return this.service.getLandProposalById(id);
+    }
 
     @Operation(summary = "Create new land proposal", tags = {"4. Land Proposal"})
     @PreAuthorize("hasRole('INVESTOR')")

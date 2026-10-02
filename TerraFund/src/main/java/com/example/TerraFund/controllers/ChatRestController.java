@@ -27,4 +27,10 @@ public class ChatRestController {
         return chatService.getChatMessages(user1, user2);
     }
 
+    @Operation(summary = "Send chat message via REST", tags = {"6. Chat"})
+    @org.springframework.web.bind.annotation.PostMapping("/send")
+    public ResponseEntity<?> sendMessage(@org.springframework.web.bind.annotation.RequestBody com.example.TerraFund.dto.requests.MessageDto messageDto){
+        return chatService.sendMessage(messageDto.getReceiverId(), messageDto.getMessage());
+    }
+
 }

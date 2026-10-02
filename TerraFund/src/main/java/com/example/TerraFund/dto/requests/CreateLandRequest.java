@@ -1,6 +1,7 @@
 package com.example.TerraFund.dto.requests;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Positive;
 import lombok.Data;
 
 import java.util.List;
@@ -10,24 +11,33 @@ public class CreateLandRequest {
     @NotBlank(message = "Title is required")
     private String title;
 
-    @NotBlank(message = "Description is required")
     private String description;
 
     @NotBlank(message = "Location is required")
     private String location;
 
-    @NotBlank(message = "Size is required")
+    @Positive(message = "Size must be positive")
     private double sizeInHectares;
 
-    @NotBlank(message = "Soil Quality is required")
     private String soilType;
 
-    @NotBlank(message = "Water Source is required")
-    private Boolean waterSourceIsAvailable;
+    private Boolean waterSourceIsAvailable = true;
 
-    @NotBlank(message = "Road Access is required")
-    private Boolean roadAccessIsAvailable;
+    private Boolean roadAccessIsAvailable = true;
 
-    @NotBlank(message = "Demo images are required")
-    List<String> demoImages;
+    private String region;
+
+    private String cropSuitability;
+
+    private String waterSource;
+
+    private String soilQuality;
+
+    private Double elevation;
+
+    private Double annualPrice;
+
+    private Boolean published = true;
+
+    private List<String> demoImages;
 }

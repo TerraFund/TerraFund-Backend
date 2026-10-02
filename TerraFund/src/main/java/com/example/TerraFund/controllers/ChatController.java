@@ -26,7 +26,7 @@ public class ChatController {
      * Delivery uses the receiver's principal name, so users can only receive
      * messages addressed to their own session.
      */
-    @MessageMapping("app/chat.private")
+    @MessageMapping({"/chat.private", "chat.private", "app/chat.private"})
     public void sendMessage(MessageDto message, Principal principal) {
         if (principal == null || principal.getName() == null) {
             throw new IllegalArgumentException("Unauthenticated WebSocket user");

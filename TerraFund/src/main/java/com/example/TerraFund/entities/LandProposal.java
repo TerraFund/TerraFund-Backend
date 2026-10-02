@@ -56,4 +56,18 @@ public class LandProposal {
 
     @Column(nullable = false)
     private LocalDateTime updatedOn;
+
+    @PrePersist
+    public void onCreate() {
+        createdOn = LocalDateTime.now();
+        updatedOn = createdOn;
+        if (budget == null) {
+            budget = 0L;
+        }
+    }
+
+    @PreUpdate
+    public void onUpdate() {
+        updatedOn = LocalDateTime.now();
+    }
 }

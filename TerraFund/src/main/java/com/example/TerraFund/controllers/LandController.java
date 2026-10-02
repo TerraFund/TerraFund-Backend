@@ -34,8 +34,14 @@ public class LandController {
     @Operation(summary = "Upload documents", tags = {"3. Land Portal"})
     @PreAuthorize("hasRole('LAND_OWNER')")
     @PostMapping("/upload-documents/{landId}")
-    public ResponseEntity<String> uploadDocs(@PathVariable Long landId, @RequestParam("file") MultipartFile file) {
-        return ResponseEntity.ok("Document uploaded successfully for land ID " + landId);
+    public ResponseEntity<?> uploadDocs(@PathVariable Long landId, @RequestParam("file") MultipartFile file) {
+        String filename = landService.uploadDocument(landId, file);
+        java.util.Map<String, Object> response = new java.util.HashMap<>();
+        response.put("success", true);
+        response.put("message", "Document uploaded successfully for land ID " + landId);
+        response.put("filename", filename);
+        response.put("url", "/api/files/download/" + filename);
+        return ResponseEntity.ok(response);
     }
 
     /**
@@ -70,13 +76,12 @@ public class LandController {
     @Operation(summary = "Publish land", tags = {"3. Land Portal"})
     @PreAuthorize("hasRole('LAND_OWNER')")
     @PatchMapping("/publish/{id}")
-    public ResponseEntity<String> publish(@PathVariable Long id) {
-
-        return ResponseEntity.ok("Land published successfully (ID: " + id + ")");
+    public ResponseEntity<?> publish(@PathVariable Long id) {
+        Land published = landService.publish(id);
+        return ResponseEntity.ok(published);
     }
 
     @Operation(summary = "List published lands", tags = {"3. Land Portal"})
-    @PreAuthorize("hasAnyRole('LAND_OWNER', 'INVESTOR', 'USER', 'ADMIN')")
     @GetMapping("/list")
     public ResponseEntity<List<Land>> list() {
         List<Land> published = landService.listPublished();
@@ -84,7 +89,6 @@ public class LandController {
     }
 
     @Operation(summary = "Get land details", tags = {"3. Land Portal"})
-    @PreAuthorize("hasAnyRole('LAND_OWNER', 'INVESTOR', 'USER', 'ADMIN')")
     @GetMapping("/{id}")
     public ResponseEntity<Land> landDetails(@PathVariable Long id) {
         return landService.findById(id)

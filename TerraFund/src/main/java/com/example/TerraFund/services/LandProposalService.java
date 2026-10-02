@@ -9,6 +9,8 @@ import com.example.TerraFund.entities.User;
 import com.example.TerraFund.repositories.LandProposalRepository;
 import com.example.TerraFund.repositories.LandRepository;
 import com.example.TerraFund.repositories.UserRepository;
+import com.example.TerraFund.repositories.LandOwnerProfileRepository;
+import com.example.TerraFund.repositories.InvestorProfileRepository;
 import com.example.TerraFund.security.CurrentUser;
 import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +31,8 @@ public class LandProposalService {
     private final CurrentUser currentUser;
     private final EmailService emailService;
     private final UserRepository userRepository;
+    private final LandOwnerProfileRepository landOwnerProfileRepository;
+    private final InvestorProfileRepository investorProfileRepository;
 
     public ResponseEntity<?> createNewLandProposal(LandProposalRequest request) {
         User user = currentUser.get();
@@ -49,18 +53,97 @@ public class LandProposalService {
         proposal.setInvestorID(user.getId());
         proposal.setLandOwnerID(owner.getId());
         proposal.setLandID(request.getLandID());
-        proposal.setTitle(request.getTitle());
-        proposal.setDescription(request.getDescription());
-        proposal.setPurpose(request.getPurpose());
-        proposal.setDurationInMonths(request.getDurationInMonths());
+        proposal.setTitle(request.getTitle() != null ? request.getTitle() : "Investment Proposal");
+        proposal.setDescription(request.getDescription() != null ? request.getDescription() : "");
+        proposal.setPurpose(request.getPurpose() != null ? request.getPurpose() : "Agricultural Investment");
+        proposal.setDurationInMonths(request.getDurationInMonths() != null ? String.valueOf(request.getDurationInMonths()) : "12");
+        proposal.setBudget(request.getBudget() != null ? request.getBudget() : 10000L);
         // SECURITY: status is server-controlled; previously a client could create
         // a proposal already marked ACCEPTED.
         proposal.setStatus(ProposalStatus.PENDING);
         proposal.setAttachments(request.getAttachments());
+        proposal.setCreatedOn(java.time.LocalDateTime.now());
+        proposal.setUpdatedOn(java.time.LocalDateTime.now());
 
-         repository.save(proposal);
-         return ResponseEntity.ok(proposal);
+        repository.save(proposal);
+        return ResponseEntity.ok(proposal);
 
+    }
+
+    private java.util.Map<String, Object> enrichProposal(LandProposal proposal) {
+        java.util.Map<String, Object> map = new java.util.HashMap<>();
+        map.put("id", proposal.getId());
+        map.put("landID", proposal.getLandID());
+        map.put("landId", proposal.getLandID());
+        map.put("investorID", proposal.getInvestorID());
+        map.put("landOwnerID", proposal.getLandOwnerID());
+        map.put("title", proposal.getTitle());
+        map.put("description", proposal.getDescription());
+        map.put("notes", proposal.getDescription());
+        map.put("message", proposal.getDescription() != null && !proposal.getDescription().isBlank() ? proposal.getDescription() : proposal.getTitle());
+        map.put("purpose", proposal.getPurpose());
+        map.put("intendedCrop", proposal.getPurpose());
+        map.put("durationInMonths", proposal.getDurationInMonths());
+        map.put("duration", proposal.getDurationInMonths());
+        map.put("budget", proposal.getBudget());
+        map.put("amount", proposal.getBudget());
+        map.put("proposedAmount", "$" + (proposal.getBudget() != null ? String.format("%,d", proposal.getBudget()) : "0"));
+        map.put("status", proposal.getStatus() != null ? proposal.getStatus().name().toLowerCase() : "pending");
+        map.put("statusUpper", proposal.getStatus() != null ? proposal.getStatus().name() : "PENDING");
+        map.put("attachments", proposal.getAttachments());
+        map.put("createdOn", proposal.getCreatedOn());
+        map.put("createdAt", proposal.getCreatedOn() != null ? proposal.getCreatedOn().toString().substring(0, 10) : "");
+        map.put("created_at", proposal.getCreatedOn());
+        map.put("updatedOn", proposal.getUpdatedOn());
+
+        landRepository.findById(proposal.getLandID()).ifPresent(land -> {
+            map.put("landTitle", land.getTitle());
+            map.put("landLocation", land.getLocation());
+            map.put("landSize", land.getSizeInHectares());
+        });
+
+        userRepository.findById(proposal.getInvestorID()).ifPresent(inv -> {
+            map.put("investorEmail", inv.getEmail());
+            map.put("investorPhone", inv.getPhoneNumber());
+            investorProfileRepository.findByUserEmail(inv.getEmail()).ifPresentOrElse(prof -> {
+                String fName = prof.getFirstName() != null ? prof.getFirstName() : "";
+                String lName = prof.getLastName() != null ? prof.getLastName() : "";
+                map.put("investorName", (fName + " " + lName).trim());
+            }, () -> {
+                map.put("investorName", inv.getEmail().split("@")[0]);
+            });
+        });
+
+        userRepository.findById(proposal.getLandOwnerID()).ifPresent(owner -> {
+            map.put("landownerEmail", owner.getEmail());
+            map.put("landownerPhone", owner.getPhoneNumber());
+            landOwnerProfileRepository.findByUserEmail(owner.getEmail()).ifPresentOrElse(prof -> {
+                String fName = prof.getFirstName() != null ? prof.getFirstName() : "";
+                String lName = prof.getLastName() != null ? prof.getLastName() : "";
+                map.put("landownerName", (fName + " " + lName).trim());
+            }, () -> {
+                map.put("landownerName", owner.getEmail().split("@")[0]);
+            });
+        });
+
+        return map;
+    }
+
+    public ResponseEntity<?> getLandProposalById(UUID id) {
+        LandProposal proposal = repository.findById(id).orElse(null);
+        if (proposal == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        User user = currentUser.get();
+        if (user != null && user.getRole() != RoleEnum.ADMIN) {
+            if (!Objects.equals(user.getId(), proposal.getInvestorID()) &&
+                !Objects.equals(user.getId(), proposal.getLandOwnerID())) {
+                return ResponseEntity.status(403).body("Access denied");
+            }
+        }
+
+        return ResponseEntity.ok(enrichProposal(proposal));
     }
 
     public ResponseEntity<?> getMyProposals() {
@@ -70,13 +153,14 @@ public class LandProposalService {
             return ResponseEntity.badRequest().body("You must be logged in to view your proposals!");
         }
 
-        if (user.getRole() != RoleEnum.INVESTOR) {
+        if (user.getRole() != RoleEnum.INVESTOR && user.getRole() != RoleEnum.ADMIN) {
             return ResponseEntity.badRequest().body("Only investors can have proposals!");
         }
 
         List<LandProposal> proposals = repository.findByInvestorID(user.getId());
+        List<java.util.Map<String, Object>> result = proposals.stream().map(this::enrichProposal).toList();
 
-        return ResponseEntity.ok(proposals);
+        return ResponseEntity.ok(result);
     }
 
     public ResponseEntity<?> getMyReceivedProposals() {
@@ -86,13 +170,14 @@ public class LandProposalService {
             return ResponseEntity.badRequest().body("You must be logged in to view received proposals!");
         }
 
-        if (user.getRole() != RoleEnum.LAND_OWNER) {
+        if (user.getRole() != RoleEnum.LAND_OWNER && user.getRole() != RoleEnum.ADMIN) {
             return ResponseEntity.badRequest().body("Only land owners can receive proposals!");
         }
 
         List<LandProposal> proposals = repository.findByLandOwnerID(user.getId());
+        List<java.util.Map<String, Object>> result = proposals.stream().map(this::enrichProposal).toList();
 
-        return ResponseEntity.ok(proposals);
+        return ResponseEntity.ok(result);
     }
 
     public ResponseEntity<?> acceptLandProposal(UUID id) {

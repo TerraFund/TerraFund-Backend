@@ -137,7 +137,23 @@ public class AuthService {
 
         setRefreshCookie(response, refreshToken);
 
-        return ResponseEntity.ok(accessToken);
+        java.util.Map<String, Object> res = new java.util.HashMap<>();
+        res.put("accessToken", accessToken);
+        res.put("token", accessToken);
+        res.put("tokenType", "Bearer");
+        res.put("id", user.getId());
+        res.put("email", user.getEmail());
+        res.put("role", user.getRole() != null ? user.getRole().name().toLowerCase() : "user");
+        java.util.Map<String, Object> userMap = new java.util.HashMap<>();
+        userMap.put("id", String.valueOf(user.getId()));
+        userMap.put("email", user.getEmail());
+        userMap.put("name", user.getEmail().split("@")[0]);
+        userMap.put("phone", user.getPhoneNumber());
+        userMap.put("role", user.getRole() != null ? user.getRole().name().toLowerCase() : "user");
+        userMap.put("kyc_status", Boolean.TRUE.equals(user.getOtpVerified()) ? "verified" : "pending");
+        res.put("user", userMap);
+
+        return ResponseEntity.ok(res);
     }
 
     public ResponseEntity<?> refresh(String refreshToken){
@@ -215,44 +231,58 @@ public class AuthService {
 
     public ResponseEntity<?> me(){
         User user = currentUser.get();
+        if (user == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not authenticated");
+        }
 
         if(user.getRole() == RoleEnum.INVESTOR){
-            InvestorProfile profile = investorProfileRepository.findByUserEmail(user.getEmail())
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Investor profile not found"));
-
-            return ResponseEntity.ok(
-                    new InvestorProfileResponse(
-                            profile.getId(),
-                            profile.getFirstName(),
-                            profile.getAddress(),
-                            profile.getLastName(),
-                            profile.getPhoneNumber(),
-                            profile.getProfilePictureUrl(),
-                            profile.getNationalIdNumber(),
-                            profile.getCompany(),
-                            profile.getOccupation(),
-                            profile.getMinInvestmentBudget(),
-                            profile.getMaxInvestmentBudget()
-                    )
-            );
+            var profileOpt = investorProfileRepository.findByUserEmail(user.getEmail());
+            if (profileOpt.isPresent()) {
+                InvestorProfile profile = profileOpt.get();
+                return ResponseEntity.ok(
+                        new InvestorProfileResponse(
+                                profile.getId(),
+                                profile.getFirstName(),
+                                profile.getAddress(),
+                                profile.getLastName(),
+                                profile.getPhoneNumber(),
+                                profile.getProfilePictureUrl(),
+                                profile.getNationalIdNumber(),
+                                profile.getCompany(),
+                                profile.getOccupation(),
+                                profile.getMinInvestmentBudget(),
+                                profile.getMaxInvestmentBudget()
+                        )
+                );
+            }
         }else if(user.getRole() == RoleEnum.LAND_OWNER){
-            LandOwnerProfile profile = landOwnerProfileRepository.findByUserEmail(user.getEmail())
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Land owner profile not found"));
-
-            return ResponseEntity.ok(
-                    new LandOwnerProfileResponse(
-                            profile.getId(),
-                            profile.getFirstName(),
-                            profile.getLastName(),
-                            profile.getAddress(),
-                            profile.getPhoneNumber(),
-                            profile.getProfilePictureUrl(),
-                            profile.getNationalIdNumber()
-                    )
-            );
-        }else{
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You must be an investor or a land owner to access this endpoint!");
+            var profileOpt = landOwnerProfileRepository.findByUserEmail(user.getEmail());
+            if (profileOpt.isPresent()) {
+                LandOwnerProfile profile = profileOpt.get();
+                return ResponseEntity.ok(
+                        new LandOwnerProfileResponse(
+                                profile.getId(),
+                                profile.getFirstName(),
+                                profile.getLastName(),
+                                profile.getEmail(),
+                                profile.getPhoneNumber(),
+                                profile.getAddress(),
+                                profile.getProfilePictureUrl(),
+                                profile.getNationalIdNumber()
+                        )
+                );
+            }
         }
+
+        java.util.Map<String, Object> baseUser = new java.util.HashMap<>();
+        baseUser.put("id", user.getId());
+        baseUser.put("email", user.getEmail());
+        baseUser.put("name", user.getEmail().split("@")[0]);
+        baseUser.put("phoneNumber", user.getPhoneNumber());
+        baseUser.put("role", user.getRole() != null ? user.getRole().name().toLowerCase() : "user");
+        baseUser.put("kyc_status", Boolean.TRUE.equals(user.getOtpVerified()) ? "verified" : "pending");
+        baseUser.put("hasProfile", false);
+        return ResponseEntity.ok(baseUser);
     }
 
     /**
@@ -287,13 +317,13 @@ public class AuthService {
 
         InvestorProfile profile = new InvestorProfile();
 
-        profile.setFirstName(request.getFirstName());
-        profile.setLastName(request.getLastName());
-        profile.setAddress(request.getAddress());
+        profile.setFirstName(request.getFirstName() != null ? request.getFirstName() : "");
+        profile.setLastName(request.getLastName() != null ? request.getLastName() : "");
+        profile.setAddress(request.getAddress() != null ? request.getAddress() : "Kigali, Rwanda");
         profile.setEmail(user.getEmail());
-        profile.setPhoneNumber(user.getPhoneNumber());
+        profile.setPhoneNumber(user.getPhoneNumber() != null ? user.getPhoneNumber() : "");
         profile.setProfilePictureUrl(request.getProfilePictureUrl());
-        profile.setNationalIdNumber(request.getNationalIdNumber());
+        profile.setNationalIdNumber(request.getNationalIdNumber() != null ? request.getNationalIdNumber() : "N/A");
         profile.setCompany(request.getCompany());
         profile.setOccupation(request.getOccupation());
         profile.setMinInvestmentBudget(request.getMinInvestmentBudget());
@@ -327,12 +357,14 @@ public class AuthService {
 
         LandOwnerProfile profile = new LandOwnerProfile();
 
-        profile.setFirstName(request.getFirstName());
-        profile.setLastName(request.getLastName());
+        profile.setFirstName(request.getFirstName() != null ? request.getFirstName() : "");
+        profile.setLastName(request.getLastName() != null ? request.getLastName() : "");
         profile.setEmail(user.getEmail());
-        profile.setPhoneNumber(user.getPhoneNumber());
+        profile.setPhoneNumber(user.getPhoneNumber() != null ? user.getPhoneNumber() : "");
+        profile.setAddress(request.getAddress() != null ? request.getAddress() : "Kigali, Rwanda");
+        profile.setTotalLandsListed("0");
         profile.setProfilePictureUrl(request.getProfilePictureUrl());
-        profile.setNationalIdNumber(request.getNationalIdNumber());
+        profile.setNationalIdNumber(request.getNationalIdNumber() != null ? request.getNationalIdNumber() : "N/A");
 
         profile.setUser(user);
 
@@ -342,8 +374,9 @@ public class AuthService {
                         profile.getId(),
                         profile.getFirstName(),
                         profile.getLastName(),
-                        profile.getAddress(),
+                        profile.getEmail(),
                         profile.getPhoneNumber(),
+                        profile.getAddress(),
                         profile.getProfilePictureUrl(),
                         profile.getNationalIdNumber()
                 )
@@ -366,15 +399,15 @@ public class AuthService {
         InvestorProfile profile = investorProfileRepository.findByUserEmail(user.getEmail())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Investor profile not found"));
 
-        profile.setFirstName(request.getFirstName());
-        profile.setLastName(request.getLastName());
-        profile.setAddress(request.getAddress());
-        profile.setProfilePictureUrl(request.getProfilePictureUrl());
-        profile.setNationalIdNumber(request.getNationalIdNumber());
-        profile.setCompany(request.getCompany());
-        profile.setOccupation(request.getOccupation());
-        profile.setMinInvestmentBudget(request.getMinInvestmentBudget());
-        profile.setMaxInvestmentBudget(request.getMaxInvestmentBudget());
+        if (request.getFirstName() != null) profile.setFirstName(request.getFirstName());
+        if (request.getLastName() != null) profile.setLastName(request.getLastName());
+        if (request.getAddress() != null) profile.setAddress(request.getAddress());
+        if (request.getProfilePictureUrl() != null) profile.setProfilePictureUrl(request.getProfilePictureUrl());
+        if (request.getNationalIdNumber() != null) profile.setNationalIdNumber(request.getNationalIdNumber());
+        if (request.getCompany() != null) profile.setCompany(request.getCompany());
+        if (request.getOccupation() != null) profile.setOccupation(request.getOccupation());
+        if (request.getMinInvestmentBudget() != null) profile.setMinInvestmentBudget(request.getMinInvestmentBudget());
+        if (request.getMaxInvestmentBudget() != null) profile.setMaxInvestmentBudget(request.getMaxInvestmentBudget());
 
         investorProfileRepository.save(profile);
 
@@ -406,11 +439,11 @@ public class AuthService {
         LandOwnerProfile profile = landOwnerProfileRepository.findByUserEmail(user.getEmail())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Land owner profile not found"));
 
-        profile.setFirstName(request.getFirstName());
-        profile.setLastName(request.getLastName());
-        profile.setAddress(request.getAddress());
-        profile.setProfilePictureUrl(request.getProfilePictureUrl());
-        profile.setNationalIdNumber(request.getNationalIdNumber());
+        if (request.getFirstName() != null) profile.setFirstName(request.getFirstName());
+        if (request.getLastName() != null) profile.setLastName(request.getLastName());
+        if (request.getAddress() != null) profile.setAddress(request.getAddress());
+        if (request.getProfilePictureUrl() != null) profile.setProfilePictureUrl(request.getProfilePictureUrl());
+        if (request.getNationalIdNumber() != null) profile.setNationalIdNumber(request.getNationalIdNumber());
 
         landOwnerProfileRepository.save(profile);
 
@@ -419,8 +452,9 @@ public class AuthService {
                         profile.getId(),
                         profile.getFirstName(),
                         profile.getLastName(),
-                        profile.getAddress(),
+                        profile.getEmail(),
                         profile.getPhoneNumber(),
+                        profile.getAddress(),
                         profile.getProfilePictureUrl(),
                         profile.getNationalIdNumber()
                 )

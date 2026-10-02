@@ -52,7 +52,7 @@ public class Land {
     private Boolean waterSourceIsAvailable;
     private Boolean roadAccessIsAvailable;
 
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.EAGER)
     private List<String> demoImages;
 
     private LocalDateTime createdAt;

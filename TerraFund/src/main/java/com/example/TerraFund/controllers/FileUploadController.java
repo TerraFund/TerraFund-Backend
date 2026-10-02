@@ -21,14 +21,21 @@ public class FileUploadController {
     private FileUploadService fileUploadService;
 
     @PostMapping("/upload")
-    public ResponseEntity<String> uploadFile(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity<?> uploadFile(@RequestParam("file") MultipartFile file) {
         try {
             String filename = fileUploadService.saveFile(file);
-            return ResponseEntity.ok("File uploaded successfully: " + filename);
+            java.util.Map<String, Object> resp = new java.util.HashMap<>();
+            resp.put("success", true);
+            resp.put("message", "File uploaded successfully: " + filename);
+            resp.put("filename", filename);
+            resp.put("url", "/api/files/download/" + filename);
+            return ResponseEntity.ok(resp);
         } catch (IOException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to upload file");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(java.util.Map.of("success", false, "error", "Failed to upload file"));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(java.util.Map.of("success", false, "error", e.getMessage()));
         }
     }
 

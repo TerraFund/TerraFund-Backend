@@ -13,6 +13,8 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Optional;
+import org.springframework.web.multipart.MultipartFile;
+import java.io.IOException;
 
 @Service
 @RequiredArgsConstructor
@@ -20,6 +22,7 @@ public class LandService {
 
     private final LandRepository landRepository;
     private final CurrentUser currentUser;
+    private final FileUploadService fileUploadService;
 
     /**
      * SECURITY: the owner is now set from the authenticated user. Previously lands
@@ -32,9 +35,18 @@ public class LandService {
         newLand.setDescription(createLandRequest.getDescription());
         newLand.setLocation(createLandRequest.getLocation());
         newLand.setSizeInHectares(createLandRequest.getSizeInHectares());
-        newLand.setSoilType(createLandRequest.getSoilType());
-        newLand.setWaterSourceIsAvailable(createLandRequest.getWaterSourceIsAvailable());
-        newLand.setRoadAccessIsAvailable(createLandRequest.getRoadAccessIsAvailable());
+        newLand.setSize(createLandRequest.getSizeInHectares());
+        newLand.setSoilType(createLandRequest.getSoilType() != null ? createLandRequest.getSoilType() : "Rich Loam");
+        newLand.setWaterSourceIsAvailable(createLandRequest.getWaterSourceIsAvailable() != null ? createLandRequest.getWaterSourceIsAvailable() : true);
+        newLand.setRoadAccessIsAvailable(createLandRequest.getRoadAccessIsAvailable() != null ? createLandRequest.getRoadAccessIsAvailable() : true);
+        newLand.setRegion(createLandRequest.getRegion() != null ? createLandRequest.getRegion() : "Eastern Province");
+        newLand.setCropSuitability(createLandRequest.getCropSuitability());
+        newLand.setWaterSource(createLandRequest.getWaterSource());
+        newLand.setSoilQuality(createLandRequest.getSoilQuality());
+        newLand.setElevation(createLandRequest.getElevation() != null ? createLandRequest.getElevation() : 1500.0);
+        newLand.setDemoImages(createLandRequest.getDemoImages());
+        newLand.setPublished(createLandRequest.getPublished() != null ? createLandRequest.getPublished() : true);
+        newLand.setHidden(false);
         newLand.setOwner(owner);
         return landRepository.save(newLand);
     }
@@ -57,15 +69,46 @@ public class LandService {
         User user = currentUser.get();
         Land land = getOwnedLand(id, user);
 
-        land.setTitle(request.getTitle());
-        land.setDescription(request.getDescription());
-        land.setLocation(request.getLocation());
-        land.setSizeInHectares(request.getSizeInHectares());
-        land.setSoilType(request.getSoilType());
-        land.setWaterSourceIsAvailable(request.getWaterSourceIsAvailable());
-        land.setRoadAccessIsAvailable(request.getRoadAccessIsAvailable());
+        if (request.getTitle() != null) land.setTitle(request.getTitle());
+        if (request.getDescription() != null) land.setDescription(request.getDescription());
+        if (request.getLocation() != null) land.setLocation(request.getLocation());
+        if (request.getSizeInHectares() > 0) {
+            land.setSizeInHectares(request.getSizeInHectares());
+            land.setSize(request.getSizeInHectares());
+        }
+        if (request.getSoilType() != null) land.setSoilType(request.getSoilType());
+        if (request.getWaterSourceIsAvailable() != null) land.setWaterSourceIsAvailable(request.getWaterSourceIsAvailable());
+        if (request.getRoadAccessIsAvailable() != null) land.setRoadAccessIsAvailable(request.getRoadAccessIsAvailable());
+        if (request.getRegion() != null) land.setRegion(request.getRegion());
+        if (request.getCropSuitability() != null) land.setCropSuitability(request.getCropSuitability());
+        if (request.getWaterSource() != null) land.setWaterSource(request.getWaterSource());
+        if (request.getSoilQuality() != null) land.setSoilQuality(request.getSoilQuality());
+        if (request.getElevation() != null) land.setElevation(request.getElevation());
+        if (request.getDemoImages() != null) land.setDemoImages(request.getDemoImages());
+        if (request.getPublished() != null) land.setPublished(request.getPublished());
 
         return landRepository.save(land);
+    }
+
+    public Land publish(Long id) {
+        User user = currentUser.get();
+        Land land = getOwnedLand(id, user);
+        land.setPublished(true);
+        land.setHidden(false);
+        return landRepository.save(land);
+    }
+
+    public String uploadDocument(Long id, MultipartFile file) {
+        User user = currentUser.get();
+        Land land = getOwnedLand(id, user);
+        try {
+            String filename = fileUploadService.saveFile(file);
+            land.setOwnershipDocPath("/api/files/download/" + filename);
+            landRepository.save(land);
+            return filename;
+        } catch (IOException e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to upload document", e);
+        }
     }
 
     /**
