@@ -16,6 +16,7 @@ import com.example.TerraFund.security.CurrentUser;
 import com.example.TerraFund.security.JwtService;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,6 +29,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDateTime;
 import java.util.Objects;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -43,6 +45,10 @@ public class AuthService {
     // SECURITY: set to true in production so the refresh cookie is never sent over plain HTTP.
     @Value("${application.security.cookie-secure:false}")
     private boolean cookieSecure;
+
+    /** Base URL of the frontend, used to build password-reset links. */
+    @Value("${application.frontend.base-url:http://localhost:3000}")
+    private String frontendBaseUrl;
 
     private static final String REFRESH_COOKIE = "refreshToken";
     private static final int REFRESH_COOKIE_MAX_AGE = 7 * 24 * 60 * 60; // 7 days
@@ -93,17 +99,16 @@ public class AuthService {
 
             setRefreshCookie(response, refreshToken);
 
-            //emailService.sendEmail(user.getEmail(), "Verify your account", "Your OTP is: " + otp);
+            // SECURITY: the OTP is delivered by email, never in the HTTP response
+            // (previously anyone could "verify" any account without inbox access).
+            // A mail outage must not block registration, so failures are logged only.
+            try {
+                emailService.sendEmail(user.getEmail(), "Verify your account", "Your OTP is: " + otp);
+            } catch (Exception mailEx) {
+                log.error("Failed to send verification OTP to {}: {}", user.getEmail(), mailEx.getMessage());
+            }
 
-            // TODO SECURITY: stop returning the OTP in the response once email
-            //  delivery is enabled - it currently lets anyone "verify" themselves
-            //  without access to the email inbox.
-            return ResponseEntity.ok(
-                    new RegisterResponse(
-                            accessToken,
-                            otp
-                    )
-            );
+            return ResponseEntity.ok(new RegisterResponse(accessToken));
         }catch (Exception e){
             return ResponseEntity.badRequest().body(e.getMessage());
         }
@@ -162,7 +167,9 @@ public class AuthService {
         }
 
         try {
-            if(!jwtService.validateToken(refreshToken)){
+            if(!jwtService.validateToken(refreshToken) || !jwtService.isRefreshToken(refreshToken)){
+                // SECURITY: a stolen 15-minute ACCESS token can no longer be
+                // replayed to /refresh to mint new sessions.
                 throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid refresh token!");
             }
 
@@ -195,8 +202,8 @@ public class AuthService {
             user.setResetTokenExpiry(LocalDateTime.now().plusMinutes(15));
             userRepository.save(user);
 
-            // Frontend link to reset password
-            String resetLink = "http://localhost:3000/reset-password?token=" + resetToken;
+            // Frontend link to reset password (base URL configurable per environment)
+            String resetLink = frontendBaseUrl + "/reset-password?token=" + resetToken;
 
             emailService.sendEmail(
                     user.getEmail(),

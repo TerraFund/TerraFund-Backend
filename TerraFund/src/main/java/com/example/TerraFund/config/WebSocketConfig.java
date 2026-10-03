@@ -33,7 +33,10 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void configureMessageBroker(MessageBrokerRegistry registry) {
         registry.setApplicationDestinationPrefixes("/app");
-        registry.enableSimpleBroker("/chat", "/user", "/queue", "/topic");
+        // BUG FIX: ChatController delivers private messages via /user/{email}/queue/messages,
+        // which the simple broker resolves to /queue/... destinations. "/queue" was not a
+        // broker prefix, so delivered messages were silently dropped.
+        registry.enableSimpleBroker("/queue", "/topic", "/chat", "/user");
         registry.setUserDestinationPrefix("/user");
     }
 }
