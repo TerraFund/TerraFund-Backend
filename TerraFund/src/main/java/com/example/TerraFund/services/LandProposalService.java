@@ -14,10 +14,13 @@ import com.example.TerraFund.repositories.InvestorProfileRepository;
 import com.example.TerraFund.security.CurrentUser;
 import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 import com.example.TerraFund.Utils.EmailService;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -44,7 +47,13 @@ public class LandProposalService {
          }
 
         Land land = landRepository.findById(request.getLandID())
-                .orElseThrow(() -> new RuntimeException("Land not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Land not found"));
+
+        // SECURITY: proposals can only be made on publicly visible lands
+        // (previously unpublished, hidden lands could be targeted).
+        if (!land.isPublished() || land.isHidden()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Proposals are only allowed on published lands");
+        }
 
         User owner =  land.getOwner();
 
@@ -57,13 +66,15 @@ public class LandProposalService {
         proposal.setDescription(request.getDescription() != null ? request.getDescription() : "");
         proposal.setPurpose(request.getPurpose() != null ? request.getPurpose() : "Agricultural Investment");
         proposal.setDurationInMonths(request.getDurationInMonths() != null ? String.valueOf(request.getDurationInMonths()) : "12");
+        // BUG FIX: budget/createdOn/updatedOn are NOT NULL columns but were never
+        // set, so every proposal insert failed with a database error (HTTP 500).
         proposal.setBudget(request.getBudget() != null ? request.getBudget() : 10000L);
         // SECURITY: status is server-controlled; previously a client could create
         // a proposal already marked ACCEPTED.
         proposal.setStatus(ProposalStatus.PENDING);
         proposal.setAttachments(request.getAttachments());
-        proposal.setCreatedOn(java.time.LocalDateTime.now());
-        proposal.setUpdatedOn(java.time.LocalDateTime.now());
+        proposal.setCreatedOn(LocalDateTime.now());
+        proposal.setUpdatedOn(LocalDateTime.now());
 
         repository.save(proposal);
         return ResponseEntity.ok(proposal);
@@ -182,7 +193,7 @@ public class LandProposalService {
 
     public ResponseEntity<?> acceptLandProposal(UUID id) {
         LandProposal proposal = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Land Proposal not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Land Proposal not found"));
 
         User user = currentUser.get();
 
@@ -199,7 +210,7 @@ public class LandProposalService {
         }
 
         User investor = userRepository.findById(proposal.getInvestorID())
-                .orElseThrow(() -> new RuntimeException("Investor not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Investor not found"));
 
         // BUG FIX: recipient was investor.toString(), which is not an email address
         emailService.sendEmail(investor.getEmail(),"Your proposal was accepted!", proposal.toString());
@@ -210,7 +221,7 @@ public class LandProposalService {
 
     public ResponseEntity<?> rejectLandProposal(UUID id) {
         LandProposal proposal = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Land Proposal not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Land Proposal not found"));
 
         User user = currentUser.get();
 
@@ -230,7 +241,7 @@ public class LandProposalService {
         repository.save(proposal);
 
         User investor = userRepository.findById(proposal.getInvestorID())
-                .orElseThrow(() -> new RuntimeException("Investor not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Investor not found"));
 
         emailService.sendEmail(investor.getEmail(),"Your proposal was rejected!", proposal.toString());
 
@@ -239,7 +250,7 @@ public class LandProposalService {
 
     public ResponseEntity<?> cancelLandProposal(UUID id) {
         LandProposal proposal = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Land Proposal not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Land Proposal not found"));
 
         User user = currentUser.get();
 
@@ -256,10 +267,8 @@ public class LandProposalService {
         }
 
         proposal.setStatus(ProposalStatus.CANCELED);
+        proposal.setUpdatedOn(LocalDateTime.now());
         repository.save(proposal);
-
-        User owner = userRepository.findById(proposal.getLandOwnerID())
-                .orElseThrow(() -> new RuntimeException("Land owner not found"));
 
         return ResponseEntity.ok(proposal);
     }

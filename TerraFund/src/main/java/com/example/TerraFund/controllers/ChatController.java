@@ -26,6 +26,11 @@ public class ChatController {
      * Delivery uses the receiver's principal name, so users can only receive
      * messages addressed to their own session.
      */
+    /**
+     * Destinations: /app/chat.private (plus un-prefixed client variants).
+     * BUG FIX: the original "app/chat.private" declaration doubled the /app
+     * prefix, so client messages were never routed here.
+     */
     @MessageMapping({"/chat.private", "chat.private", "app/chat.private"})
     public void sendMessage(MessageDto message, Principal principal) {
         if (principal == null || principal.getName() == null) {
@@ -50,6 +55,15 @@ public class ChatController {
 
         messageRepository.save(messageEntity);
 
-        template.convertAndSendToUser(receiver.getEmail(), "/queue/messages", message);
+        // SECURITY: push a sanitized copy - the client-supplied senderId must not
+        // be echoed to the receiver (previously the pushed message could show a
+        // spoofed sender even though the stored record had the real one).
+        MessageDto outgoing = new MessageDto();
+        outgoing.setSenderId(sender.getId());
+        outgoing.setReceiverId(receiver.getId());
+        outgoing.setMessage(message.getMessage());
+        outgoing.setTimestamp(message.getTimestamp());
+
+        template.convertAndSendToUser(receiver.getEmail(), "/queue/messages", outgoing);
     }
 }

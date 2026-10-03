@@ -17,14 +17,23 @@ public class JwtService {
     // SECURITY: SecureRandom instead of Math.random() (predictable OTPs)
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
+    public static final String CLAIM_TYPE = "type";
+    public static final String TYPE_ACCESS = "access";
+    public static final String TYPE_REFRESH = "refresh";
+
     @Value("${application.security.jwt.secret-key}")
     private String secret;
 
+    /**
+     * SECURITY: tokens carry a "type" claim so an access token can never be
+     * replayed as a refresh token (and vice versa).
+     */
     public String generateAccessToken(String email, RoleEnum role, Long id){
         return Jwts.builder()
                 .subject(email)
                 .claim("role", role)
                 .claim("id", id)
+                .claim(CLAIM_TYPE, TYPE_ACCESS)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + 1000 * 60 * 15)) // 15 minutes
                 .signWith(Keys.hmacShaKeyFor(secret.getBytes()))
@@ -37,11 +46,24 @@ public class JwtService {
                 .subject(email)
                 .claim("role", role)
                 .claim("id", id)
+                .claim(CLAIM_TYPE, TYPE_REFRESH)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24 * 7)) // 7 days
                 .signWith(Keys.hmacShaKeyFor(secret.getBytes()))
                 .compact()
                 ;
+    }
+
+    public String getTokenType(String token){
+        return getClaims(token).get(CLAIM_TYPE, String.class);
+    }
+
+    public boolean isAccessToken(String token){
+        return TYPE_ACCESS.equals(getTokenType(token));
+    }
+
+    public boolean isRefreshToken(String token){
+        return TYPE_REFRESH.equals(getTokenType(token));
     }
 
     public boolean validateToken(String token){
