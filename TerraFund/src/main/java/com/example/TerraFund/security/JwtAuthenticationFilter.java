@@ -42,7 +42,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String userEmail = jwtService.getEmailFromToken(jwt);
 
             if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                if (jwtService.validateToken(jwt)) {
+                // SECURITY: only access tokens authenticate API calls; refresh
+                // tokens (7-day lifetime) must never be usable as access tokens.
+                if (jwtService.validateToken(jwt) && jwtService.isAccessToken(jwt)) {
                     String role = jwtService.getRoleFromToken(jwt);
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                             userEmail,
